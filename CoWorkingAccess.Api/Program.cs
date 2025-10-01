@@ -38,36 +38,36 @@ builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
     .AddEntityFrameworkStores<CoWorkingAccessDbContext>()
     .AddDefaultTokenProviders();
 
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-builder.Services
-    .AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtSettings["Issuer"],
-            ValidAudience = jwtSettings["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]))
-        };
-    });
+// var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+// builder.Services
+//     .AddAuthentication(options =>
+//     {
+//         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+//         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+//     })
+//     .AddJwtBearer(options =>
+//     {
+//         options.TokenValidationParameters = new TokenValidationParameters
+//         {
+//             ValidateIssuer = true,
+//             ValidateAudience = true,
+//             ValidateLifetime = true,
+//             ValidateIssuerSigningKey = true,
+//             ValidIssuer = jwtSettings["Issuer"],
+//             ValidAudience = jwtSettings["Audience"],
+//             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]))
+//         };
+//     });
+//
+// builder.Services.AddAuthorization(options =>
+// {
+//     options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
+//     options.AddPolicy("User", policy => policy.RequireRole("User"));
+// });
 
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
-    options.AddPolicy("User", policy => policy.RequireRole("User"));
-});
-
-builder.Services.RegisterRepositories();
 builder.Services.RegisterServices();
 builder.Services.RegisterAutomapper();
+builder.Services.Configure<LiqPaySettings>(builder.Configuration.GetSection("LiqPay"));
 
 var app = builder.Build();
 
@@ -78,16 +78,16 @@ if (app.Environment.IsDevelopment())
 }
 
 // app.UseMiddleware<ExceptionHandlerMiddleware>();
-using var scope = app.Services.CreateScope();
-var services = scope.ServiceProvider;
-try
-{
-    DataSeed.Seed(services);
-}
-catch (Exception ex)
-{
-    Debug.WriteLine(ex.Message, ex.StackTrace);
-}
+//using var scope = app.Services.CreateScope();
+//var services = scope.ServiceProvider;
+//try
+//{
+//    DataSeed.Seed(services);
+//}
+//catch (Exception ex)
+//{
+//    Debug.WriteLine(ex.Message, ex.StackTrace);
+//}
 
 app.UseCors("AllowAllOrigins");
 app.UseAuthentication();
