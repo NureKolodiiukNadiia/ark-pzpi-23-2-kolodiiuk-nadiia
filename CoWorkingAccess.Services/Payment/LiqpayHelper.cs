@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using SHA3.Net;
 
@@ -23,13 +24,16 @@ public class LiqPayHelper
             public_key = _publicKey,
             version = 7,
             action = "pay",
-            amount,
+            amount = amount.ToString(),
             currency,
             description,
-            order_id = orderId,
+            order_id = orderId.ToString(),
         };
 
         var jsonParams = JsonSerializer.Serialize(paymentParams);
+        Debug.WriteLine("JSON:");
+        Debug.WriteLine(jsonParams);
+        Debug.WriteLine("---------------------------------");
         var data = Convert.ToBase64String(Encoding.UTF8.GetBytes(jsonParams));
         var signature = GenerateSignature(data);
 

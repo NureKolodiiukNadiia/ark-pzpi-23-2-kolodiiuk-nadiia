@@ -8,5 +8,5 @@ public class CreatePaymentRequest
     
     public string Description { get; set; }
 
-    public int OrderId { get; set; }
+    public int PaymentId { get; set; }
 }

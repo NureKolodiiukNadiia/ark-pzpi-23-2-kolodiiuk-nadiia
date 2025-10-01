@@ -1,6 +1,6 @@
-using CoWorkingAccess.Domain.Interfaces.Services;
+using CoWorkingAccess.Domain.Interfaces;
 using CoWorkingAccess.Services.Auth;
-using CoWorkingAccess.Services.Helpers;
+using CoWorkingAccess.Services.Payment;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CoWorkingAccess.Services;
@@ -11,6 +11,7 @@ public static class ContainerConfigExtensions
     {
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
+        services.AddScoped<IPaymentService, PaymentService>();
         services.AddTransient<TokenHelper, TokenHelper>();
     }
 }

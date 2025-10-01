@@ -1,7 +1,8 @@
+using System.Diagnostics;
 using CoWorkingAccess.Api.Dtos;
 using CoWorkingAccess.Domain.Interfaces;
 using CoWorkingAccess.Services.Payment;
-using LiqPay.SDK.Dto;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using LiqPayResponse = CoWorkingAccess.Services.Payment.LiqPayResponse;
 
@@ -13,14 +14,14 @@ public class PaymentController : ControllerBase
 {
     private readonly LiqPayHelper _liqPayHelper;
 
-    private readonly IOrderService _orderService;
+    private readonly IPaymentService _paymentService;
 
-    public PaymentController(IConfiguration configuration, IOrderService orderService)
+    public PaymentController(IConfiguration configuration, IPaymentService paymentService)
     {
         var publicKey = configuration["LiqPay:PublicKey"];
         var privateKey = configuration["LiqPay:PrivateKey"];
         _liqPayHelper = new LiqPayHelper(publicKey, privateKey);
-        _orderService = orderService;
+        _paymentService = paymentService;
     }
 
     [HttpPost("create")]
@@ -32,7 +33,7 @@ public class PaymentController : ControllerBase
                 request.Amount,
                 request.Currency ?? "UAH",
                 request.Description,
-                request.OrderId
+                request.PaymentId
             );
 
             return Ok(new
@@ -48,30 +49,36 @@ public class PaymentController : ControllerBase
     }
 
     [HttpPost("callback")]
+    [AllowAnonymous] // If you have [Authorize] globally
+    [Consumes("application/x-www-form-urlencoded")]
     public async Task<IActionResult> PaymentCallback([FromForm] LiqPayCallback callback)
     {
         try
         {
+            Debug.WriteLine("---------------------------------");
+            Debug.WriteLine(callback.data);
+            Debug.WriteLine(callback.signature);
             if (!_liqPayHelper.VerifyCallback(callback.data, callback.signature))
             {
                 return BadRequest("Invalid signature");
             }
 
             var response = _liqPayHelper.DecodeData<LiqPayResponse>(callback.data);
-            var parseResult = int.TryParse(response.order_id, out var orderId);
+            Debug.WriteLine(response.ToString());
+            var parseResult = int.TryParse(response.order_id, out var paymentId);
             if (parseResult)
             {
                 switch (response.status)
                 {
                     case "success":
-                        await _orderService.UpdateOrderStatus(orderId, "Paid");
+                        await _paymentService.UpdatePaymentStatus(paymentId, response.transaction_id, "Paid");
                         break;
                     case "failure":
                     case "error":
-                        await _orderService.UpdateOrderStatus(orderId, "Failed");
+                        await _paymentService.UpdatePaymentStatus(paymentId, response.transaction_id, "Failed");
                         break;
                     case "sandbox":
-                        await _orderService.UpdateOrderStatus(orderId, "TestPaid");
+                        await _paymentService.UpdatePaymentStatus(paymentId, response.transaction_id, "TestPaid");
                         break;
                 }
             }
@@ -82,7 +89,7 @@ public class PaymentController : ControllerBase
 
             return Ok();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return StatusCode(500);
         }
