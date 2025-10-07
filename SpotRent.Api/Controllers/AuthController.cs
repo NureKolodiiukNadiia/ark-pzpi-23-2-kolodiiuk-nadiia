@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using AutoMapper;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SpotRent.Api.Dtos;
@@ -26,8 +27,45 @@ public class AuthController : ControllerBase
         _configuration = configuration;
     }
 
+    [HttpPost("google")]
+    public async Task<ActionResult<LoginResponse>> GoogleSignIn([FromBody] GoogleSignInRequest request)
+    {
+        var validationResult = await _authService.ValidateGoogleSignInRequestAsync(request.IdToken);
+        if (validationResult.Failure)
+        {
+            return Unauthorized(new { message = "Invalid Google token" });
+        }
+
+        var payload = validationResult.Value;
+
+        var userResult = await _authService.GetOrCreateUser(payload.Email, payload.Name, payload.Subject);
+        if (userResult.Failure)
+        {
+            return Unauthorized(new { message = userResult.Error });
+        }
+
+        (string, string) tokens = await _authService.GenerateTokens(userResult.Value);
+        var tokenExpiration = DateTime.UtcNow.AddMinutes(
+            Convert.ToDouble(_configuration["Jwt:TokenExpirationMinutes"]));
+        var response = new LoginResponse
+        {
+            Token = tokens.Item1,
+            RefreshToken = tokens.Item2,
+            Expiration = tokenExpiration,
+            User = new UserDto
+            {
+                Id = userResult.Value.Id,
+                Email = userResult.Value.Email,
+                FirstName = userResult.Value.FirstName,
+                LastName = userResult.Value.LastName
+            }
+        };
+
+        return Ok(response);
+    }
+
     [HttpPost("register")]
-    public async Task<IActionResult> RegisterAsync(ReqisterRequest reqisterRequest)
+    public async Task<IActionResult> Register(ReqisterRequest reqisterRequest)
     {
         if (reqisterRequest == null)
         {
@@ -38,15 +76,16 @@ public class AuthController : ControllerBase
         {
             return BadRequest(ModelState);
         }
+
         var user = _mapper.Map<User>(reqisterRequest);
         user.Role = Role.User;
-        var result = await _authService.RegisterAsync(user, reqisterRequest.Password, 
+        var result = await _authService.RegisterAsync(user, reqisterRequest.Password,
             reqisterRequest.PhoneNumber, reqisterRequest.FirstName, reqisterRequest.LastName);
         if (result.Failure)
         {
             return StatusCode(500, result.Error);
         }
-        
+
         return Ok();
     }
 
@@ -97,7 +136,7 @@ public class AuthController : ControllerBase
         {
             return Unauthorized(new { message = result.Error });
         }
-        
+
         LoginResponse response = new LoginResponse
         {
             Token = result.Value.Token,
@@ -177,13 +216,13 @@ public class AuthController : ControllerBase
 
         var user = _mapper.Map<User>(reqisterRequest);
         user.Role = Role.Admin;
-        var result = await _authService.RegisterAsync(user, reqisterRequest.Password, 
+        var result = await _authService.RegisterAsync(user, reqisterRequest.Password,
             reqisterRequest.PhoneNumber, reqisterRequest.FirstName, reqisterRequest.LastName);
         if (result.Failure)
         {
             return StatusCode(500, result.Error);
         }
-        
+
         return Ok();
     }
 }
