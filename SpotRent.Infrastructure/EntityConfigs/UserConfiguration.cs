@@ -12,8 +12,15 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.HasKey(u => u.Id);
 
+        builder.Property(e => e.GoogleId)
+            .IsRequired()
+            .HasMaxLength(255);
+
         builder.Property(u => u.Id)
             .HasColumnName("user_id");
+
+        builder.Property(u => u.PictureUrl)
+            .HasMaxLength(400);
 
         builder.Property(u => u.FirstName)
             .HasColumnName("first_name")

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SpotRent.Infrastructure;
@@ -11,9 +12,11 @@ using SpotRent.Infrastructure;
 namespace SpotRent.Infrastructure.Migrations
 {
     [DbContext(typeof(SpotRentDbContext))]
-    partial class SpotRentDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251005102508_AddUserRefreshTokenTable")]
+    partial class AddUserRefreshTokenTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -629,11 +632,6 @@ namespace SpotRent.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("first_name");
 
-                    b.Property<string>("GoogleId")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -665,10 +663,6 @@ namespace SpotRent.Infrastructure.Migrations
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("boolean");
-
-                    b.Property<string>("PictureUrl")
-                        .HasMaxLength(400)
-                        .HasColumnType("character varying(400)");
 
                     b.Property<int>("Role")
                         .HasColumnType("integer")
@@ -709,7 +703,7 @@ namespace SpotRent.Infrastructure.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -719,7 +713,7 @@ namespace SpotRent.Infrastructure.Migrations
                         .HasColumnName("created_by_ip");
 
                     b.Property<DateTime>("Expires")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("expires");
 
                     b.Property<string>("ReplacedByToken")
