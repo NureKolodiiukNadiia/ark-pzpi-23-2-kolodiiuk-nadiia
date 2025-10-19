@@ -56,11 +56,6 @@ public class SpaceConfiguration : IEntityTypeConfiguration<Space>
             .IsRequired()
             .HasDefaultValue(true);
 
-        builder.Property(s => s.HasProjector).HasColumnName("has_projector");
-        builder.Property(s => s.HasWhiteboard).HasColumnName("has_whiteboard");
-        builder.Property(s => s.HasWiFi).HasColumnName("has_wifi");
-        builder.Property(s => s.HasAirConditioning).HasColumnName("has_air_conditioning");
-
         builder.Property(s => s.CreatedAt)
             .HasColumnName("created_at")
             .HasColumnType("timestamp with time zone")
