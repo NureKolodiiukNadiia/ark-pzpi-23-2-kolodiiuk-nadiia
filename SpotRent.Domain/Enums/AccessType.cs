@@ -2,7 +2,7 @@ namespace SpotRent.Domain.Enums;
 
 public enum AccessType
 {
-    Entry,
-    Exit,
-    AccessDenied
+    Entry = 0,
+    Exit = 1,
+    AccessDenied = 2
 }

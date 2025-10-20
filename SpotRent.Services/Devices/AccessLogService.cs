@@ -2,7 +2,7 @@ using SpotRent.Domain.Entities;
 using SpotRent.Domain.Enums;
 using SpotRent.Services.Interfaces;
 
-namespace SpotRent.Services;
+namespace SpotRent.Services.Devices;
 
 public class AccessLogService : IAccessLogService
 {

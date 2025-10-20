@@ -2,8 +2,8 @@ namespace SpotRent.Domain.Enums;
 
 public enum LockStatus
 {
-    Locked = 1,
-    Unlocked = 2,
-    Error = 3,
-    Offline = 4,
+    Locked = 0,
+    Unlocked = 1,
+    Error = 2,
+    Offline = 3,
 }
