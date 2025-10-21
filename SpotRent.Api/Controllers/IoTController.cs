@@ -75,16 +75,19 @@ public class IoTController : ControllerBase
     [HttpPost("device-status")]
     public async Task<IActionResult> UpdateDeviceStatus([FromBody] DeviceStatusRequest request)
     {
+        throw new NotImplementedException();
+        /*
         // Log device status update
         var spaceResult = await _spaceService.GetSpaceByDeviceIdAsync(request.DeviceId);
         if (spaceResult == null)
             return BadRequest(new { Message = "Device not found" });
-                
+
         // Update space availability based on device status if needed
         spaceResult.Value.IsAvailable = request.IsOnline;
         await _spaceService.UpdateSpaceAsync(spaceResult.Value);
-            
+
         return Ok(new { Message = "Device status updated" });
+        */
     }
 }
     
