@@ -49,7 +49,7 @@ public static class DataSeed
                 {
                     new Space
                     {
-                        Name = "Conference Room", Description = "Large conference room", Type = SpaceType.MeetingRoom,
+                        Name = "Conference Room", Description = "Large conference room", Type = SpaceType.ConferenceRoom,
                         Capacity = 10, HourlyRate = 50m, IsAvailable = true, CreatedAt = DateTime.UtcNow
                     },
                     new Space
