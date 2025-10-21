@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SpotRent.Api;
 using SpotRent.Api.Dtos;
+using SpotRent.Api.Middleware;
 using SpotRent.Domain.Entities;
 using SpotRent.Infrastructure;
 using SpotRent.Services;
@@ -100,6 +101,9 @@ builder.Services.RegisterServices();
 builder.Services.RegisterAutomapper();
 builder.Services.Configure<LiqPaySettings>(builder.Configuration.GetSection("LiqPay"));
 
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -108,7 +112,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// app.UseMiddleware<ExceptionHandlerMiddleware>();
+app.UseMiddleware<ExceptionHandlerMiddleware>();
 //using var scope = app.Services.CreateScope();
 //var services = scope.ServiceProvider;
 //try
