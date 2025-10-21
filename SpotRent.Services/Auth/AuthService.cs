@@ -80,6 +80,16 @@ public class AuthService : IAuthService
         var token = _jwtService.GenerateToken(user);
         var refreshToken = _jwtService.GenerateRefreshToken();
 
+        var activeTokens = await _context.UserRefreshTokens
+            .Where(rt => rt.UserId == user.Id && rt.Expires > DateTime.UtcNow && rt.Revoked == null)
+            .OrderBy(rt => rt.CreatedAt)
+            .ToListAsync();
+        if (activeTokens.Count >= 5)
+        {
+            var oldestToken = activeTokens.First();
+            _context.UserRefreshTokens.Remove(oldestToken);
+        }
+
         var userRefreshToken = new UserRefreshToken
         {
             UserId = user.Id,
@@ -88,7 +98,6 @@ public class AuthService : IAuthService
             CreatedAt = DateTime.UtcNow,
             CreatedByIp = GetIpAddress()
         };
-
         _context.UserRefreshTokens.Add(userRefreshToken);
 
         var oldTokens = _context.UserRefreshTokens
@@ -97,7 +106,7 @@ public class AuthService : IAuthService
 
         await _context.SaveChangesAsync();
 
-        return new ValueTuple<string, string>(token, refreshToken);
+        return (token, refreshToken);
     }
 
     public async Task<Result<GoogleJsonWebSignature.Payload>> ValidateGoogleSignInRequestAsync(string idToken)
@@ -152,29 +161,44 @@ public class AuthService : IAuthService
         if (user != null)
         {
             var fixResult = await FixLoginInUserManager(payloadSubject, user);
-
             return fixResult.Failure ? Result.Fail<User>(fixResult.Error) : Result.Success(user);
         }
 
-        var userCreateResult = await CreateNewUser(payloadEmail, payloadName, payloadSubject);
-        if (userCreateResult.Failure)
+        try
         {
-            return Result.Fail<User>(userCreateResult.Error);
-        }
+            var userCreateResult = await CreateNewUser(payloadEmail, payloadName, payloadSubject);
+            if (userCreateResult.Failure)
+            {
+                return Result.Fail<User>(userCreateResult.Error);
+            }
 
-        var login = new UserLoginInfo("Google", payloadSubject, "Google");
-        var addLogin = await _userManager.AddLoginAsync(userCreateResult.Value, login);
-        if (!addLogin.Succeeded)
+            var login = new UserLoginInfo("Google", payloadSubject, "Google");
+            var addLogin = await _userManager.AddLoginAsync(userCreateResult.Value, login);
+            if (!addLogin.Succeeded)
+            {
+                return Result.Fail<User>(
+                    string.Join(", ", addLogin.Errors.Select(e => e.Description)));
+            }
+
+            return Result.Success(userCreateResult.Value);
+        }
+        catch (DbUpdateException ex)
         {
-            return Result.Fail<User>(
-                string.Join(", ", addLogin.Errors.Select(e => e.Description)));
-        }
+            user = await _userManager.FindByEmailAsync(payloadEmail);
+            if (user != null)
+            {
+                var fixResult = await FixLoginInUserManager(payloadSubject, user);
+                return fixResult.Failure ? Result.Fail<User>(fixResult.Error) : Result.Success(user);
+            }
 
-        return Result.Success(userCreateResult.Value);
+            return Result.Fail<User>("Failed to create user: " + ex.Message);
+        }
     }
 
     public async Task<Result<RefreshTokenResponse>> RefreshTokenAsync(string token)
     {
+        await using var tx = await _context.Database.BeginTransactionAsync();
+
         var storedRefreshToken = await _context.UserRefreshTokens
             .Include(rt => rt.User)
             .FirstOrDefaultAsync(rt => rt.Token == token && rt.Expires > DateTime.UtcNow);
@@ -186,25 +210,31 @@ public class AuthService : IAuthService
 
         if (storedRefreshToken.Revoked != null)
         {
-            return Result.Fail<RefreshTokenResponse>("Token revoked");
+            await RevokeTokenChainAsync(storedRefreshToken);
+            await tx.CommitAsync();
+            return Result.Fail<RefreshTokenResponse>("Token theft detected");
         }
 
+        var requestIp = GetIpAddress();
         var newToken = _jwtService.GenerateToken(storedRefreshToken.User);
         var newRefreshToken = _jwtService.GenerateRefreshToken();
 
         storedRefreshToken.Revoked = DateTime.UtcNow;
-        storedRefreshToken.RevokedByIp = GetIpAddress();
+        storedRefreshToken.RevokedByIp = requestIp;
         storedRefreshToken.ReplacedByToken = newRefreshToken;
+
         var userRefreshToken = new UserRefreshToken
         {
             UserId = storedRefreshToken.UserId,
             Token = newRefreshToken,
             Expires = DateTime.UtcNow.AddDays(Convert.ToDouble(_configuration["Jwt:RefreshTokenExpirationDays"])),
             CreatedAt = DateTime.UtcNow,
-            CreatedByIp = GetIpAddress()
+            CreatedByIp = requestIp
         };
         _context.UserRefreshTokens.Add(userRefreshToken);
+
         await _context.SaveChangesAsync();
+        await tx.CommitAsync();
 
         return Result.Success(new RefreshTokenResponse
         {
@@ -215,6 +245,37 @@ public class AuthService : IAuthService
             FirstName = storedRefreshToken.User.FirstName,
             LastName = storedRefreshToken.User.LastName
         });
+    }
+
+    private async Task RevokeTokenChainAsync(UserRefreshToken startToken)
+    {
+        if (startToken.Revoked == null)
+        {
+            startToken.Revoked = DateTime.UtcNow;
+            startToken.RevokedByIp = GetIpAddress();
+        }
+
+        var nextTokenValue = startToken.ReplacedByToken;
+        while (!string.IsNullOrEmpty(nextTokenValue))
+        {
+            var next = await _context.UserRefreshTokens
+                .FirstOrDefaultAsync(rt => rt.Token == nextTokenValue);
+
+            if (next == null)
+            {
+                break;
+            }
+
+            if (next.Revoked == null)
+            {
+                next.Revoked = DateTime.UtcNow;
+                next.RevokedByIp = GetIpAddress();
+            }
+
+            nextTokenValue = next.ReplacedByToken;
+        }
+
+        await _context.SaveChangesAsync();
     }
 
     public async Task<Result> LogoutAsync(string token)
@@ -265,18 +326,39 @@ public class AuthService : IAuthService
             return context.Request.Headers["X-Forwarded-For"].ToString();
         }
 
-        return context.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? "0";
+        return context.Connection.RemoteIpAddress?.MapToIPv4().ToString();
     }
 
     private async Task<Result<User>> CreateNewUser(string payloadEmail, string payloadName, string payloadSubject)
     {
+        string firstName = "", lastName;
+        int i = 0;
+        for (;i < payloadName.Length; i++)
+        {
+            if (payloadName[i] == ' ')
+            {
+                firstName = payloadName.Substring(0, i + 1);
+                break;
+            }
+        }
+
+        if (i == payloadName.Length)
+        {
+            firstName = payloadName;
+            lastName = "";
+        }
+        else
+        {
+            lastName = payloadName.Substring(i + 1);
+        }
+
         var newUser1 = new User
         {
             GoogleId = payloadSubject,
             Email = payloadEmail,
             UserName = payloadEmail,
-            FirstName = payloadName,
-            LastName = "",
+            FirstName = firstName,
+            LastName = lastName,
             PhoneNumber = "",
             EmailConfirmed = true,
             CreatedAt = DateTime.UtcNow,
