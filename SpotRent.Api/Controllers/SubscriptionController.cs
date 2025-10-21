@@ -35,28 +35,54 @@ public class SubscriptionController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<Subscription>> GetSubscriptionAsync(int id)
     {
-        throw new NotImplementedException();
+        var spaceDeletionResult = await _subscriptionService.GetSubscriptionByIdAsync(id);
+        if (spaceDeletionResult.Failure)
+        {
+            return BadRequest(spaceDeletionResult.Error);
+        }
+
+        return Ok(spaceDeletionResult.Value);
     }
 
     // POST /api/subscription
     [HttpPost]
     public async Task<ActionResult> CreateSubscriptionAsync([FromBody] CreateSubscriptionDto subscriptionDto)
     {
-        throw new NotImplementedException();
+        var subscription = _mapper.Map<CreateSubscriptionDto, Subscription>(subscriptionDto);
+        var spaceDeletionResult = await _subscriptionService.AddSubscriptionAsync(subscription);
+        if (spaceDeletionResult.Failure)
+        {
+            return BadRequest(spaceDeletionResult.Error);
+        }
+
+        return Ok(spaceDeletionResult.Value);
     }
 
     // PUT /api/subscription/{id}
     [HttpPut("{id:int}")]
     public async Task<ActionResult> UpdateSubscriptionAsync(int id, [FromBody] UpdateSubscriptionDto subscriptionDto)
     {
-        throw new NotImplementedException();
+        var subscription = _mapper.Map<UpdateSubscriptionDto, Subscription>(subscriptionDto);
+        var updateSubscriptionResult = await _subscriptionService.UpdateSubscriptionAsync(subscription);
+        if (updateSubscriptionResult.Failure)
+        {
+            return BadRequest(updateSubscriptionResult.Error);
+        }
+
+        return Ok(updateSubscriptionResult.Value);
     }
 
     // DELETE /api/subscription/{id}
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> DeleteSubscriptionAsync(int id)
     {
-        throw new NotImplementedException();
+        var spaceDeletionResult = await _subscriptionService.DeleteSubscriptionAsync(id);
+        if (spaceDeletionResult.Failure)
+        {
+            return BadRequest(spaceDeletionResult.Error);
+        }
+
+        return Ok();
     }
 
     // POST /api/subscription/user/{userId}
