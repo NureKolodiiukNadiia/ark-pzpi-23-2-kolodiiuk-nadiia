@@ -9,10 +9,8 @@ public static class ContainerConfigExtensions
 {
     public static void RegisterServices(this IServiceCollection services)
     {
-        services.AddScoped<IAccessLogService, AccessLogService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<IJwtService, JwtService>();
-        services.AddScoped<ISmartLockService, SmartLockService>();
     }
 }

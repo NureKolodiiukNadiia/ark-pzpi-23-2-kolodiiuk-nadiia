@@ -31,8 +31,14 @@ public class Space
     public string RoomNumber { get; set; }
 
     public bool IsAvailable { get; set; } = true;
-    //todo: add to config
-    public int LockId { get; set; }
+
+    public bool HasProjector { get; set; }
+
+    public bool HasWhiteboard { get; set; }
+
+    public bool HasWiFi { get; set; }
+
+    public bool HasAirConditioning { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -41,6 +47,4 @@ public class Space
     public ICollection<Device> Devices { get; set; } = new List<Device>();
 
     public ICollection<AccessLog> AccessLogs { get; set; } = new List<AccessLog>();
-
-    public ICollection<SpaceAttribute> SpaceAttributes { get; set; } = new List<SpaceAttribute>();
 }

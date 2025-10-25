@@ -10,7 +10,6 @@ public class SpotRentDbContext : IdentityDbContext<User, IdentityRole<int>, int>
 {
     public SpotRentDbContext(DbContextOptions<SpotRentDbContext> options) : base(options)
     {
-        Database.SetCommandTimeout(30);
     }
 
     public DbSet<AccessLog> AccessLogs { get; set; }

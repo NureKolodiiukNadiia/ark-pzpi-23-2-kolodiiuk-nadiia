@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SpotRent.Api.Dtos;
@@ -15,14 +14,11 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
 
-    private readonly IMapper _mapper;
-
     private readonly IConfiguration _configuration;
 
-    public AuthController(IAuthService authService, IMapper mapper, IConfiguration configuration)
+    public AuthController(IAuthService authService, IConfiguration configuration)
     {
         _authService = authService;
-        _mapper = mapper;
         _configuration = configuration;
     }
 
@@ -76,8 +72,12 @@ public class AuthController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var user = _mapper.Map<User>(registerRequest);
-        user.Role = Role.User;
+        var user = new User()
+        {
+            Email = registerRequest.Email,
+            NormalizedEmail = registerRequest.Email.ToUpper(),
+            Role = Role.User
+        };
         var result = await _authService.RegisterAsync(user, registerRequest.Password,
             registerRequest.PhoneNumber, registerRequest.FirstName, registerRequest.LastName);
         if (result.Failure)
@@ -213,8 +213,13 @@ public class AuthController : ControllerBase
             return BadRequest(new ProblemDetails() { Title = "Invalid register data" });
         }
 
-        var user = _mapper.Map<User>(registerRequest);
-        user.Role = Role.Admin;
+        var user = new User()
+        {
+            Email = registerRequest.Email,
+            NormalizedEmail = registerRequest.Email.ToUpper(),
+            Role = Role.Admin
+        };
+
         var result = await _authService.RegisterAsync(user, registerRequest.Password,
             registerRequest.PhoneNumber, registerRequest.FirstName, registerRequest.LastName);
         if (result.Failure)
