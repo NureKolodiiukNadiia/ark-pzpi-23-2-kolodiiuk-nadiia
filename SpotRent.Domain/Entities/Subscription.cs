@@ -22,11 +22,13 @@ public class Subscription
         
     public SubscriptionStatus Status { get; set; }
         
-    public int HoursUsed { get; set; } = 0;
+    public int HoursUsed { get; set; }
         
     public DateTime CreatedAt { get; set; }
     
     public DateTime UpdatedAt { get; set; }
+
+    public DateTime? CancelledAt { get; set; }
 
     public User User { get; set; }
 

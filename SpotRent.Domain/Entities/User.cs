@@ -11,13 +11,13 @@ public class User : IdentityUser<int>
         
     [Required]
     public string LastName { get; set; }
+
+    public string PhoneNumber { get; set; }
         
     [Required]
     public Role Role { get; set; } = Role.User;
 
     public string GoogleId { get; set; }
-
-    public string PictureUrl { get; set; }
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         

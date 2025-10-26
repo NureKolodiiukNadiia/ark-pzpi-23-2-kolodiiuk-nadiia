@@ -19,9 +19,8 @@ public class Payment
 
     public PaymentStatus Status { get; set; }
 
-    //todo: check the data type
     [StringLength(100)]
-    public string TransactionId { get; set; }
+    public long TransactionId { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

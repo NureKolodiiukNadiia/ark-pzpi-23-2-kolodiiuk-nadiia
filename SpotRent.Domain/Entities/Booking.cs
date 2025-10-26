@@ -24,8 +24,6 @@ public class Booking
     [Column(TypeName = "decimal(10,2)")]
     public decimal TotalAmount { get; set; }
 
-    public Duration BookingType { get; set; }
-
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

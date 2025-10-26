@@ -7,34 +7,43 @@ public class Space
 {
     public int Id { get; set; }
 
+    public int OwnerId { get; set; }
+
+    public int AddressId { get; set; }
+
     [Required]
     public string Name { get; set; }
 
     public string Description { get; set; }
 
     [Required]
-    public SpaceType Type { get; set; }
+    public SpaceType SpaceType { get; set; }
+
+    public double AreaSqm { get; set; }
 
     public int Capacity { get; set; }
 
     [Required]
     public decimal HourlyRate { get; set; }
 
-    public string Equipment { get; set; }
+    public bool IsAvailable { get; set; } = true;
+    
+    public string AddressLine { get; set; }
 
-    public string ImageUrl { get; set; }
-
-    [StringLength(50)]
     public string Floor { get; set; }
 
-    [StringLength(20)]
-    public string RoomNumber { get; set; }
+    public string House { get; set; }
 
-    public bool IsAvailable { get; set; } = true;
-    //todo: add to config
-    public int LockId { get; set; }
+    public string Street { get; set; }
 
+    public string City { get; set; }
+
+    public string Oblast { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    
+    public DateTime UpdatedAt { get; set; }
+
+    public User Owner { get; set; } = new User();
 
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 

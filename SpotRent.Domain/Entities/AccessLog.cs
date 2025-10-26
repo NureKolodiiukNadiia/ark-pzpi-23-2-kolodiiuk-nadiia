@@ -9,8 +9,6 @@ public class AccessLog
         
     public int? UserId { get; set; }
 
-    public int? SpaceId { get; set; }
-
     public int? DeviceId { get; set; }
 
     [Required]
