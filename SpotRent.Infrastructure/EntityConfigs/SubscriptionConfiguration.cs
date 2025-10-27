@@ -8,45 +8,63 @@ public class SubscriptionConfiguration : IEntityTypeConfiguration<Subscription>
 {
     public void Configure(EntityTypeBuilder<Subscription> builder)
     {
-        builder.ToTable("subscription");
-
         builder.HasKey(s => s.Id);
-        builder.Property(s => s.Id).HasColumnName("subscription_id");
+        builder.Property(s => s.Id);
 
-        builder.Property(s => s.UserId).HasColumnName("user_id").IsRequired();
-        builder.Property(s => s.SubscriptionPlanId).HasColumnName("subscription_plan_id").IsRequired();
+        builder.Property(s => s.UserId)
+            .IsRequired();
+
+        builder.Property(s => s.SubscriptionPlanId)
+            .IsRequired();
 
         builder.Property(s => s.Price)
-            .HasColumnName("price")
             .HasColumnType("decimal(10,2)")
             .IsRequired();
 
         builder.Property(s => s.StartDate)
-            .HasColumnName("start_date")
             .HasColumnType("timestamp with time zone")
             .IsRequired();
 
         builder.Property(s => s.EndDate)
-            .HasColumnName("end_date")
             .HasColumnType("timestamp with time zone")
             .IsRequired();
 
         builder.Property(s => s.Status)
-            .HasColumnName("status")
             .IsRequired();
 
         builder.Property(s => s.HoursUsed)
-            .HasColumnName("hours_used")
             .IsRequired()
             .HasDefaultValue(0);
 
+        builder.Property(p => p.TotalAmount)
+            .HasColumnType("decimal(10,2)")
+            .IsRequired();
+
+        builder.Property(p => p.PaymentStatus)
+            .IsRequired();
+
+        builder.Property(p => p.TransactionId);
+
+        builder.Property(p => p.PaymentProcessedAt)
+            .HasColumnType("timestamp with time zone");
+
+        builder.Property(p => p.PaymentCreatedAt)
+            .HasColumnType("timestamp with time zone")
+            .IsRequired()
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+        builder.Property(p => p.PaymentFailureReason)
+            .HasMaxLength(1000);
+
         builder.Property(s => s.CreatedAt)
-            .HasColumnName("created_at")
             .HasColumnType("timestamp with time zone")
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         builder.Property(s => s.UpdatedAt)
-            .HasColumnName("updated_at")
+            .HasColumnType("timestamp with time zone")
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+        builder.Property(s => s.CancelledAt)
             .HasColumnType("timestamp with time zone")
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -59,10 +77,5 @@ public class SubscriptionConfiguration : IEntityTypeConfiguration<Subscription>
             .WithMany(sp => sp.Subscriptions)
             .HasForeignKey(s => s.SubscriptionPlanId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasMany(s => s.Payments)
-            .WithOne(p => p.Subscription)
-            .HasForeignKey(p => p.SubscriptionId)
-            .OnDelete(DeleteBehavior.SetNull);
     }
 }

@@ -8,56 +8,62 @@ public class SpaceConfiguration : IEntityTypeConfiguration<Space>
 {
     public void Configure(EntityTypeBuilder<Space> builder)
     {
-        builder.ToTable("space");
-
         builder.HasKey(s => s.Id);
-        builder.Property(s => s.Id).HasColumnName("space_id");
+        builder.Property(s => s.Id);
+
+        builder.Property(s => s.OwnerId)
+            .IsRequired();
 
         builder.Property(s => s.Name)
-            .HasColumnName("name")
             .IsRequired()
             .HasMaxLength(200);
 
         builder.Property(s => s.Description)
-            .HasColumnName("description")
             .HasMaxLength(1000);
 
-        builder.Property(s => s.Type)
-            .HasColumnName("type")
+        builder.Property(s => s.SpaceType)
+            .IsRequired();
+
+        builder.Property(s => s.AreaSqm);
+
+        builder.Property(s => s.Capacity)
             .IsRequired();
 
         builder.Property(s => s.Capacity)
-            .HasColumnName("capacity")
             .IsRequired();
 
         builder.Property(s => s.HourlyRate)
-            .HasColumnName("hourly_rate")
             .IsRequired()
             .HasColumnType("decimal(10,2)");
 
-        builder.Property(s => s.Equipment)
-            .HasColumnName("equipment")
-            .HasMaxLength(1000);
-
-        builder.Property(s => s.ImageUrl)
-            .HasColumnName("image_url")
-            .HasMaxLength(500);
-
-        builder.Property(s => s.Floor)
-            .HasColumnName("floor")
-            .HasMaxLength(50);
-
-        builder.Property(s => s.RoomNumber)
-            .HasColumnName("room_number")
-            .HasMaxLength(20);
-
         builder.Property(s => s.IsAvailable)
-            .HasColumnName("is_available")
             .IsRequired()
             .HasDefaultValue(true);
 
+        builder.Property(s => s.AddressLine)
+            .HasMaxLength(200);
+
+        builder.Property(s => s.Floor)
+            .HasMaxLength(50);
+
+        builder.Property(s => s.House)
+            .HasMaxLength(50);
+
+        builder.Property(s => s.Street)
+            .HasMaxLength(250);
+
+        builder.Property(s => s.City)
+            .HasMaxLength(250);
+
+        builder.Property(s => s.Oblast)
+            .HasMaxLength(200);
+
         builder.Property(s => s.CreatedAt)
-            .HasColumnName("created_at")
+            .HasColumnType("timestamp with time zone")
+            .IsRequired()
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+        builder.Property(s => s.CreatedAt)
             .HasColumnType("timestamp with time zone")
             .IsRequired()
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -70,6 +76,21 @@ public class SpaceConfiguration : IEntityTypeConfiguration<Space>
         builder.HasMany(s => s.Devices)
             .WithOne(d => d.Space)
             .HasForeignKey(d => d.SpaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(s => s.Images)
+            .WithOne(i => i.Space)
+            .HasForeignKey(i => i.SpaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(s => s.SpaceAttributes)
+            .WithOne(sa => sa.Space)
+            .HasForeignKey(sa => sa.SpaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(s => s.Owner)
+            .WithMany(u => u.Spaces)
+            .HasForeignKey(d => d.OwnerId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

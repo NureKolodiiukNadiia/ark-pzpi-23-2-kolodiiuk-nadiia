@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using SpotRent.Domain.Enums;
 
 namespace SpotRent.Domain.Entities;
@@ -12,17 +10,23 @@ public class Booking
 
     public int SpaceId { get; set; }
 
-    [Required]
     public DateTime StartTime { get; set; }
 
-    [Required]
     public DateTime EndTime { get; set; }
 
-    [Required]
     public BookingStatus Status { get; set; } = BookingStatus.Pending;
 
-    [Column(TypeName = "decimal(10,2)")]
     public decimal TotalAmount { get; set; }
+
+    public PaymentStatus PaymentStatus { get; set; }
+
+    public long TransactionId { get; set; }
+
+    public DateTime? PaymentProcessedAt { get; set; }
+
+    public DateTime PaymentCreatedAt { get; set; }
+
+    public string PaymentFailureReason { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -33,9 +37,4 @@ public class Booking
     public User User { get; set; }
 
     public Space Space { get; set; }
-
-    public Payment Payment { get; set; }
-
-    public ICollection<AccessLog> AccessLogs { get; set; } = new List<AccessLog>();
 }
-

@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using SpotRent.Domain.Enums;
 
@@ -6,15 +5,10 @@ namespace SpotRent.Domain.Entities;
 
 public class User : IdentityUser<int>
 {
-    [Required]
     public string FirstName { get; set; }
         
-    [Required]
     public string LastName { get; set; }
 
-    public string PhoneNumber { get; set; }
-        
-    [Required]
     public Role Role { get; set; } = Role.User;
 
     public string GoogleId { get; set; }
@@ -29,7 +23,7 @@ public class User : IdentityUser<int>
 
     public ICollection<AccessLog> AccessLogs { get; set; } = new List<AccessLog>();
 
-    public ICollection<Payment> Payments { get; set; } = new List<Payment>();
-
     public ICollection<UserRefreshToken> RefreshTokens { get; set; }
+
+    public ICollection<Space> Spaces { get; set; } = new List<Space>();
 }

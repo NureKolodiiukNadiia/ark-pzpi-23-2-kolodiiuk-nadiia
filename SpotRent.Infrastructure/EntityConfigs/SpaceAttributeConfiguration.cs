@@ -8,9 +8,7 @@ public class SpaceAttributeConfiguration : IEntityTypeConfiguration<SpaceAttribu
 {
     public void Configure(EntityTypeBuilder<SpaceAttribute> builder)
     {
-        builder.ToTable("product_attribute");
-
-        builder.HasKey(pa => new { pa.SpaceId, pa.AttributeId });
+        builder.HasKey(pa => pa.Id);
 
         builder.Property(pa => pa.Value)
             .HasMaxLength(500);

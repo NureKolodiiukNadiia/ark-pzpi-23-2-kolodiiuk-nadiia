@@ -8,27 +8,21 @@ public class SubscriptionPlanConfiguration : IEntityTypeConfiguration<Subscripti
 {
     public void Configure(EntityTypeBuilder<SubscriptionPlan> builder)
     {
-        builder.ToTable("subscription_plan");
-
         builder.HasKey(sp => sp.Id);
-        builder.Property(sp => sp.Id).HasColumnName("subscription_plan_id");
+        builder.Property(sp => sp.Id);
 
         builder.Property(sp => sp.Name)
-            .HasColumnName("name")
             .IsRequired()
             .HasMaxLength(100);
 
         builder.Property(sp => sp.Description)
-            .HasColumnName("description")
             .HasMaxLength(500);
 
         builder.Property(sp => sp.Price)
-            .HasColumnName("price")
             .HasColumnType("decimal(10,2)")
             .IsRequired();
 
         builder.Property(sp => sp.Duration)
-            .HasColumnName("duration")
             .IsRequired();
 
         builder.Property(sp => sp.IncludedHours)
@@ -41,13 +35,11 @@ public class SubscriptionPlanConfiguration : IEntityTypeConfiguration<Subscripti
             .HasDefaultValue(true);
 
         builder.Property(sp => sp.CreatedAt)
-            .HasColumnName("created_at")
             .HasColumnType("timestamp with time zone")
             .IsRequired()
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         builder.Property(sp => sp.UpdatedAt)
-            .HasColumnName("updated_at")
             .HasColumnType("timestamp with time zone");
 
         builder.HasMany(sp => sp.Subscriptions)
