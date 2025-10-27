@@ -21,7 +21,7 @@ public class Space
     public decimal HourlyRate { get; set; }
 
     public bool IsAvailable { get; set; } = true;
-    
+
     public string AddressLine { get; set; }
 
     public string Floor { get; set; }
@@ -34,7 +34,7 @@ public class Space
 
     public string Oblast { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    
+
     public DateTime UpdatedAt { get; set; }
 
     public User Owner { get; set; } = new User();
