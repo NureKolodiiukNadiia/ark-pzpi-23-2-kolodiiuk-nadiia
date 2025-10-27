@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using SpotRent.Domain.Enums;
 
 namespace SpotRent.Domain.Entities;
@@ -7,44 +6,44 @@ public class Space
 {
     public int Id { get; set; }
 
-    [Required]
+    public int OwnerId { get; set; }
+
     public string Name { get; set; }
 
     public string Description { get; set; }
 
-    [Required]
-    public SpaceType Type { get; set; }
+    public SpaceType SpaceType { get; set; }
+
+    public double AreaSqm { get; set; }
 
     public int Capacity { get; set; }
 
-    [Required]
     public decimal HourlyRate { get; set; }
-
-    public string Equipment { get; set; }
-
-    public string ImageUrl { get; set; }
-
-    [StringLength(50)]
-    public string Floor { get; set; }
-
-    [StringLength(20)]
-    public string RoomNumber { get; set; }
 
     public bool IsAvailable { get; set; } = true;
 
-    public bool HasProjector { get; set; }
+    public string AddressLine { get; set; }
 
-    public bool HasWhiteboard { get; set; }
+    public string Floor { get; set; }
 
-    public bool HasWiFi { get; set; }
+    public string House { get; set; }
 
-    public bool HasAirConditioning { get; set; }
+    public string Street { get; set; }
 
+    public string City { get; set; }
+
+    public string Oblast { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; }
+
+    public User Owner { get; set; } = new User();
+
+    public ICollection<Image> Images { get; set; } = new List<Image>();
 
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 
     public ICollection<Device> Devices { get; set; } = new List<Device>();
 
-    public ICollection<AccessLog> AccessLogs { get; set; } = new List<AccessLog>();
+    public ICollection<SpaceAttribute> SpaceAttributes { get; set; } = new List<SpaceAttribute>();
 }

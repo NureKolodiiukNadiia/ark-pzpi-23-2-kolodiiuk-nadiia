@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using SpotRent.Domain.Enums;
 
 namespace SpotRent.Domain.Entities;
@@ -9,14 +8,10 @@ public class AccessLog
         
     public int? UserId { get; set; }
 
-    public int? SpaceId { get; set; }
-
     public int? DeviceId { get; set; }
 
-    [Required]
     public AccessType AccessType { get; set; }
         
-    [Required]
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
         
     public bool IsSuccessful { get; set; } = true;
@@ -24,8 +19,6 @@ public class AccessLog
     public string? ErrorMessage { get; set; }
         
     public User User { get; set; }
-
-    public Space Space { get; set; }
 
     public Device Device { get; set; }
 }
