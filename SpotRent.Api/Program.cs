@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using SpotRent.Api.Dtos;
+using SpotRent.Api.Dto;
 using SpotRent.Domain.Entities;
 using SpotRent.Infrastructure;
 using SpotRent.Services;

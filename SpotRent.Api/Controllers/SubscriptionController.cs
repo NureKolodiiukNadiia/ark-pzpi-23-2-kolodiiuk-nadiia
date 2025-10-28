@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SpotRent.Api.Dto.Subscriptions;
 using SpotRent.Domain.Entities;
 using SpotRent.Services.Interfaces;
 

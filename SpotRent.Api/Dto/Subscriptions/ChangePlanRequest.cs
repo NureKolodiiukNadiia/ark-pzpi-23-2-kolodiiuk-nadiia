@@ -1,4 +1,4 @@
-namespace SpotRent.Api.Controllers;
+namespace SpotRent.Api.Dto.Subscriptions;
 
 public record ChangePlanRequest
 {

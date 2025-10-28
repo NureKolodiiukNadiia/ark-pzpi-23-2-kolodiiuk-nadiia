@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SpotRent.Api.Dtos;
+using SpotRent.Api.Dto;
 using SpotRent.Domain.Entities;
 using SpotRent.Domain.Enums;
 using SpotRent.Services.Interfaces;
