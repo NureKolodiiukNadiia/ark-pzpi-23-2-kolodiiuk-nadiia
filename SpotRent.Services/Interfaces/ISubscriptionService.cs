@@ -1,18 +1,24 @@
+using SpotRent.Domain.Common;
 using SpotRent.Domain.Entities;
+using SpotRent.Services.Subscriptions;
 
 namespace SpotRent.Services.Interfaces;
 
 public interface ISubscriptionService
 {
-    Task<IEnumerable<Subscription>> GetAvailableSubscriptionsAsync();
+    Task<Result<Subscription>> GetCurrentUserSubscriptionAsync(int userId);
+
+    Task<Result<Subscription>> GetSubscriptionByIdAsync(int id);
+
+    Task<Result<IEnumerable<SubscriptionPlan>>> GetPlansAsync();
     
-    Task<IEnumerable<Subscription>> GetAllSubscriptionsAsync();
-    
-    Task<Subscription> GetSubscriptionByIdAsync(int id);
-    
-    Task<int> AddSubscriptionAsync(Subscription subscription);
-    
-    Task UpdateSubscriptionAsync(Subscription subscription);
-    
-    Task DeleteSubscriptionAsync(int id);
+    Task<Result<SubscriptionPlan>> GetPlanByIdAsync(int id);
+
+    Task<Result<int>> SubscribeAsync(int userId, int subscriptionPlanId);
+
+    Task<Result<SubscriptionHistory>> GetSubscriptionHistoryAsync(int userId, int page, int pageSize);
+
+    Task<Result> CancelSubscriptionAsync(int subscriptionId);
+
+    Task<Result<Subscription>> ChangeSubscriptionAsync(int currSubscriptionId, int newPlanId);
 }
