@@ -1,12 +1,10 @@
-﻿using System.Reflection;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using SpotRent.Api;
-using SpotRent.Api.Dtos;
+using SpotRent.Api.Dto;
 using SpotRent.Domain.Entities;
 using SpotRent.Infrastructure;
 using SpotRent.Services;
@@ -25,7 +23,6 @@ builder.Services.AddCors(options =>
     });
 });
 builder.Services.AddControllers();
-builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
 builder.Services.AddDbContext<SpotRentDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")!));
@@ -97,7 +94,6 @@ builder.Services.AddAuthentication(options =>
     });
 
 builder.Services.RegisterServices();
-builder.Services.RegisterAutomapper();
 builder.Services.Configure<LiqPaySettings>(builder.Configuration.GetSection("LiqPay"));
 
 var app = builder.Build();

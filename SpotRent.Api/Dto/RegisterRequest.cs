@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace SpotRent.Api.Dtos;
+namespace SpotRent.Api.Dto;
 
-public class ReqisterRequest
+public class RegisterRequest
 {
     [Required]
     public string Email { get; set; }

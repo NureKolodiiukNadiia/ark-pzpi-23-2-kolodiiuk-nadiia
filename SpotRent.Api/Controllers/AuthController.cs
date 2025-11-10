@@ -1,9 +1,7 @@
 using System.Security.Claims;
-using AutoMapper;
-using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SpotRent.Api.Dtos;
+using SpotRent.Api.Dto;
 using SpotRent.Domain.Entities;
 using SpotRent.Domain.Enums;
 using SpotRent.Services.Interfaces;
@@ -16,14 +14,11 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
 
-    private readonly IMapper _mapper;
-
     private readonly IConfiguration _configuration;
 
-    public AuthController(IAuthService authService, IMapper mapper, IConfiguration configuration)
+    public AuthController(IAuthService authService, IConfiguration configuration)
     {
         _authService = authService;
-        _mapper = mapper;
         _configuration = configuration;
     }
 
@@ -65,9 +60,9 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register(ReqisterRequest reqisterRequest)
+    public async Task<IActionResult> Register(RegisterRequest registerRequest)
     {
-        if (reqisterRequest == null)
+        if (registerRequest == null)
         {
             return BadRequest(new ProblemDetails() { Title = "Invalid register data" });
         }
@@ -77,10 +72,14 @@ public class AuthController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var user = _mapper.Map<User>(reqisterRequest);
-        user.Role = Role.User;
-        var result = await _authService.RegisterAsync(user, reqisterRequest.Password,
-            reqisterRequest.PhoneNumber, reqisterRequest.FirstName, reqisterRequest.LastName);
+        var user = new User()
+        {
+            Email = registerRequest.Email,
+            NormalizedEmail = registerRequest.Email.ToUpper(),
+            Role = Role.User
+        };
+        var result = await _authService.RegisterAsync(user, registerRequest.Password,
+            registerRequest.PhoneNumber, registerRequest.FirstName, registerRequest.LastName);
         if (result.Failure)
         {
             return StatusCode(500, result.Error);
@@ -207,17 +206,22 @@ public class AuthController : ControllerBase
 
     [HttpPost("create_admin")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> CreateAdminAsync(ReqisterRequest reqisterRequest)
+    public async Task<IActionResult> CreateAdminAsync(RegisterRequest registerRequest)
     {
-        if (reqisterRequest == null)
+        if (registerRequest == null)
         {
             return BadRequest(new ProblemDetails() { Title = "Invalid register data" });
         }
 
-        var user = _mapper.Map<User>(reqisterRequest);
-        user.Role = Role.Admin;
-        var result = await _authService.RegisterAsync(user, reqisterRequest.Password,
-            reqisterRequest.PhoneNumber, reqisterRequest.FirstName, reqisterRequest.LastName);
+        var user = new User()
+        {
+            Email = registerRequest.Email,
+            NormalizedEmail = registerRequest.Email.ToUpper(),
+            Role = Role.Admin
+        };
+
+        var result = await _authService.RegisterAsync(user, registerRequest.Password,
+            registerRequest.PhoneNumber, registerRequest.FirstName, registerRequest.LastName);
         if (result.Failure)
         {
             return StatusCode(500, result.Error);

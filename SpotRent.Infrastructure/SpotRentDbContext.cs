@@ -19,8 +19,6 @@ public class SpotRentDbContext : IdentityDbContext<User, IdentityRole<int>, int>
 
     public DbSet<Device> Devices { get; set; }
 
-    public DbSet<Payment> Payments { get; set; }
-
     public DbSet<Space> Spaces { get; set; }
 
     public DbSet<Subscription> Subscriptions { get; set; }

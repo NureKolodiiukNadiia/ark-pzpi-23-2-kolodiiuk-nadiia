@@ -2,8 +2,8 @@ namespace SpotRent.Domain.Enums;
 
 public enum SubscriptionStatus
 {
-    Active,
-    Suspended,
-    Cancelled,
-    Expired,
+    Active = 0,
+    Suspended = 1,
+    Cancelled = 2,
+    Expired = 3,
 }
