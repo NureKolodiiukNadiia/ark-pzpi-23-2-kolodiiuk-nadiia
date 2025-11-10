@@ -10,7 +10,11 @@ public class AttributeValue
 
     public int? MaxValue { get; set; }
 
+    public int SpaceId { get; set; }
+
     public int AttributeId { get; set; }
+
+    public Space Space { get; set; }
 
     public Attribute Attribute { get; set; }
 }

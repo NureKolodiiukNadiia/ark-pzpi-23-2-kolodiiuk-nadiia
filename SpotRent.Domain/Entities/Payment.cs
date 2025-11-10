@@ -8,8 +8,6 @@ public class Payment
 {
     public int Id { get; set; }
 
-    public int? UserId { get; set; }
-
     public int? BookingId { get; set; }
 
     public int? SubscriptionId { get; set; }
@@ -29,8 +27,6 @@ public class Payment
 
     [StringLength(500)]
     public string FailureReason { get; set; }
-
-    public User User { get; set; }
 
     public Booking Booking { get; set; }
 

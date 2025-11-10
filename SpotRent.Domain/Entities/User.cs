@@ -22,14 +22,14 @@ public class User : IdentityUser<int>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-        
+
+    public ICollection<Space> Spaces { get; set; } = new List<Space>();
+
     public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
 
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 
     public ICollection<AccessLog> AccessLogs { get; set; } = new List<AccessLog>();
-
-    public ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
     public ICollection<UserRefreshToken> RefreshTokens { get; set; }
 }

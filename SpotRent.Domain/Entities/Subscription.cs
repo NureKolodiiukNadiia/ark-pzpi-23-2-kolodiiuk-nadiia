@@ -11,13 +11,10 @@ public class Subscription
         
     public int SubscriptionPlanId { get; set; }
 
-    [Required]
     public decimal Price { get; set; }
         
-    [Required]
     public DateTime StartDate { get; set; }
         
-    [Required]
     public DateTime EndDate { get; set; }
         
     public SubscriptionStatus Status { get; set; }

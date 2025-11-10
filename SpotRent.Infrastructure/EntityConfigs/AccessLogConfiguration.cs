@@ -8,32 +8,28 @@ public class AccessLogConfiguration : IEntityTypeConfiguration<AccessLog>
 {
     public void Configure(EntityTypeBuilder<AccessLog> builder)
     {
-        builder.ToTable("access_log");
-
         builder.HasKey(a => a.Id);
-        builder.Property(a => a.Id).HasColumnName("access_log_id");
+        builder.Property(a => a.Id);
 
-        builder.Property(a => a.UserId).HasColumnName("user_id").IsRequired();
-        builder.Property(a => a.SpaceId).HasColumnName("space_id").IsRequired();
-        builder.Property(a => a.DeviceId).HasColumnName("device_id").IsRequired();
+        builder.Property(a => a.UserId);
+
+        builder.Property(a => a.SpaceId);
+
+        builder.Property(a => a.DeviceId);
 
         builder.Property(a => a.AccessType)
-            .HasColumnName("access_type")
             .IsRequired();
 
         builder.Property(a => a.Timestamp)
-            .HasColumnName("timestamp")
             .HasColumnType("timestamp with time zone")
             .IsRequired()
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         builder.Property(a => a.IsSuccessful)
-            .HasColumnName("is_successful")
             .IsRequired()
             .HasDefaultValue(true);
 
         builder.Property(a => a.ErrorMessage)
-            .HasColumnName("error_message")
             .HasMaxLength(500);
 
         builder.HasOne(a => a.User)

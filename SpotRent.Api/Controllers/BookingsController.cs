@@ -1,7 +1,7 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using SpotRent.Domain.Enums;
 using SpotRent.Services.Interfaces;
-using System.ComponentModel.DataAnnotations;
 
 namespace SpotRent.Api.Controllers;
 

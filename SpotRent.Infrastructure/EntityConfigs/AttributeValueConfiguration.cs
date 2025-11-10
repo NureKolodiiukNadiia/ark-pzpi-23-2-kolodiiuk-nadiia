@@ -8,7 +8,7 @@ public class AttributeValueConfiguration : IEntityTypeConfiguration<AttributeVal
 {
     public void Configure(EntityTypeBuilder<AttributeValue> builder)
     {
-        builder.HasKey(av => av.Id);
+        builder.Property(av => av.Id);
 
         builder.Property(av => av.Value)
             .IsRequired()
@@ -18,9 +18,15 @@ public class AttributeValueConfiguration : IEntityTypeConfiguration<AttributeVal
 
         builder.Property(av => av.MaxValue);
 
-        builder.HasOne(av => av.Attribute)
-            .WithMany(a => a.AttributeValues)
-            .HasForeignKey(pa => pa.AttributeId)
-            .OnDelete(DeleteBehavior.Restrict);
+        builder.Property(av => av.SpaceId)
+            .IsRequired();
+
+        builder.Property(av => av.AttributeId)
+            .IsRequired();
+
+        builder.HasOne(av => av.Space)
+            .WithMany(s => s.AttributeValues)
+            .HasForeignKey(av => av.SpaceId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -7,34 +7,33 @@ public class Space
 {
     public int Id { get; set; }
 
-    [Required]
     public string Name { get; set; }
 
     public string Description { get; set; }
 
-    [Required]
-    public SpaceType Type { get; set; }
+    public SpaceType SpaceType { get; set; }
+
+    public double AreaSqm { get; set; }
+
+    public string Room { get; set; }
 
     public int Capacity { get; set; }
 
-    [Required]
     public decimal HourlyRate { get; set; }
-
-    public string Equipment { get; set; }
 
     public string ImageUrl { get; set; }
 
-    [StringLength(50)]
-    public string Floor { get; set; }
+    public int OwnerId { get; set; }
 
-    [StringLength(20)]
-    public string RoomNumber { get; set; }
-
-    public bool IsAvailable { get; set; } = true;
-    //todo: add to config
-    public int LockId { get; set; }
+    public int AddressId { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public User Owner { get; set; } = new User();
+
+    public Address Address { get; set; }
+
+    public ICollection<AttributeValue> AttributeValues { get; set; } = new List<AttributeValue>();
 
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 
@@ -42,5 +41,5 @@ public class Space
 
     public ICollection<AccessLog> AccessLogs { get; set; } = new List<AccessLog>();
 
-    public ICollection<SpaceAttribute> SpaceAttributes { get; set; } = new List<SpaceAttribute>();
+    public ICollection<WorkingHours> WorkingHours { get; set; } = new List<WorkingHours>();
 }
