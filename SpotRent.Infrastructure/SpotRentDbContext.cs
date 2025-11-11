@@ -29,6 +29,8 @@ public class SpotRentDbContext : IdentityDbContext<User, IdentityRole<int>, int>
 
     public DbSet<UserRefreshToken> UserRefreshTokens { get; set; }
 
+    public DbSet<WorkingHours> WorkingHours { get; set; }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

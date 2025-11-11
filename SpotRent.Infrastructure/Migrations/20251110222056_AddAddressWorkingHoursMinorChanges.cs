@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace SpotRent.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class CatastrophicChange : Migration
+    public partial class AddAddressWorkingHoursMinorChanges : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -65,6 +65,18 @@ namespace SpotRent.Infrastructure.Migrations
                 table: "device");
 
             migrationBuilder.DropForeignKey(
+                name: "FK_payment_booking_booking_id",
+                table: "payment");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_payment_subscription_subscription_id",
+                table: "payment");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_payment_user_user_id",
+                table: "payment");
+
+            migrationBuilder.DropForeignKey(
                 name: "FK_subscription_subscription_plan_subscription_plan_id",
                 table: "subscription");
 
@@ -75,9 +87,6 @@ namespace SpotRent.Infrastructure.Migrations
             migrationBuilder.DropForeignKey(
                 name: "FK_user_refresh_token_user_user_id",
                 table: "user_refresh_token");
-
-            migrationBuilder.DropTable(
-                name: "payment");
 
             migrationBuilder.DropPrimaryKey(
                 name: "PK_user_refresh_token",
@@ -98,6 +107,14 @@ namespace SpotRent.Infrastructure.Migrations
             migrationBuilder.DropPrimaryKey(
                 name: "PK_space",
                 table: "space");
+
+            migrationBuilder.DropPrimaryKey(
+                name: "PK_payment",
+                table: "payment");
+
+            migrationBuilder.DropIndex(
+                name: "IX_payment_user_id",
+                table: "payment");
 
             migrationBuilder.DropPrimaryKey(
                 name: "PK_device",
@@ -139,16 +156,12 @@ namespace SpotRent.Infrastructure.Migrations
                 name: "IX_access_log_BookingId",
                 table: "access_log");
 
-            migrationBuilder.DropIndex(
-                name: "IX_access_log_space_id",
-                table: "access_log");
-
-            migrationBuilder.DropColumn(
-                name: "PictureUrl",
-                table: "user");
-
             migrationBuilder.DropColumn(
                 name: "equipment",
+                table: "space");
+
+            migrationBuilder.DropColumn(
+                name: "floor",
                 table: "space");
 
             migrationBuilder.DropColumn(
@@ -168,12 +181,16 @@ namespace SpotRent.Infrastructure.Migrations
                 table: "space");
 
             migrationBuilder.DropColumn(
-                name: "image_url",
+                name: "is_available",
                 table: "space");
 
             migrationBuilder.DropColumn(
                 name: "room_number",
                 table: "space");
+
+            migrationBuilder.DropColumn(
+                name: "user_id",
+                table: "payment");
 
             migrationBuilder.DropColumn(
                 name: "device_identifier",
@@ -187,9 +204,9 @@ namespace SpotRent.Infrastructure.Migrations
                 name: "BookingId",
                 table: "access_log");
 
-            migrationBuilder.DropColumn(
-                name: "space_id",
-                table: "access_log");
+            migrationBuilder.RenameTable(
+                name: "user_refresh_token",
+                newName: "user_refresh_tokens");
 
             migrationBuilder.RenameTable(
                 name: "user",
@@ -206,6 +223,10 @@ namespace SpotRent.Infrastructure.Migrations
             migrationBuilder.RenameTable(
                 name: "space",
                 newName: "spaces");
+
+            migrationBuilder.RenameTable(
+                name: "payment",
+                newName: "payments");
 
             migrationBuilder.RenameTable(
                 name: "device",
@@ -245,13 +266,18 @@ namespace SpotRent.Infrastructure.Migrations
 
             migrationBuilder.RenameColumn(
                 name: "Id",
-                table: "user_refresh_token",
+                table: "user_refresh_tokens",
                 newName: "id");
 
             migrationBuilder.RenameIndex(
                 name: "IX_user_refresh_token_user_id",
-                table: "user_refresh_token",
+                table: "user_refresh_tokens",
                 newName: "ix_user_refresh_tokens_user_id");
+
+            migrationBuilder.RenameIndex(
+                name: "IX_user_refresh_token_token",
+                table: "user_refresh_tokens",
+                newName: "IX_user_refresh_tokens_token");
 
             migrationBuilder.RenameColumn(
                 name: "UserName",
@@ -272,6 +298,11 @@ namespace SpotRent.Infrastructure.Migrations
                 name: "SecurityStamp",
                 table: "asp_net_users",
                 newName: "security_stamp");
+
+            migrationBuilder.RenameColumn(
+                name: "PictureUrl",
+                table: "asp_net_users",
+                newName: "picture_url");
 
             migrationBuilder.RenameColumn(
                 name: "PhoneNumberConfirmed",
@@ -374,14 +405,24 @@ namespace SpotRent.Infrastructure.Migrations
                 newName: "space_type");
 
             migrationBuilder.RenameColumn(
+                name: "payment_id",
+                table: "payments",
+                newName: "id");
+
+            migrationBuilder.RenameIndex(
+                name: "IX_payment_subscription_id",
+                table: "payments",
+                newName: "ix_payments_subscription_id");
+
+            migrationBuilder.RenameIndex(
+                name: "IX_payment_booking_id",
+                table: "payments",
+                newName: "ix_payments_booking_id");
+
+            migrationBuilder.RenameColumn(
                 name: "device_id",
                 table: "devices",
                 newName: "id");
-
-            migrationBuilder.RenameColumn(
-                name: "status",
-                table: "devices",
-                newName: "lock_status");
 
             migrationBuilder.RenameIndex(
                 name: "IX_device_space_id",
@@ -392,11 +433,6 @@ namespace SpotRent.Infrastructure.Migrations
                 name: "booking_id",
                 table: "bookings",
                 newName: "id");
-
-            migrationBuilder.RenameColumn(
-                name: "booking_type",
-                table: "bookings",
-                newName: "payment_status");
 
             migrationBuilder.RenameIndex(
                 name: "IX_booking_user_id",
@@ -554,19 +590,14 @@ namespace SpotRent.Infrastructure.Migrations
                 newName: "ix_access_logs_user_id");
 
             migrationBuilder.RenameIndex(
+                name: "IX_access_log_space_id",
+                table: "access_logs",
+                newName: "ix_access_logs_space_id");
+
+            migrationBuilder.RenameIndex(
                 name: "IX_access_log_device_id",
                 table: "access_logs",
                 newName: "ix_access_logs_device_id");
-
-            migrationBuilder.AlterColumn<string>(
-                name: "phone_number",
-                table: "asp_net_users",
-                type: "character varying(30)",
-                maxLength: 30,
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "character varying(30)",
-                oldMaxLength: 30);
 
             migrationBuilder.AlterColumn<DateTime>(
                 name: "updated_at",
@@ -576,16 +607,6 @@ namespace SpotRent.Infrastructure.Migrations
                 defaultValueSql: "CURRENT_TIMESTAMP",
                 oldClrType: typeof(DateTime),
                 oldType: "timestamp with time zone");
-
-            migrationBuilder.AlterColumn<string>(
-                name: "google_id",
-                table: "asp_net_users",
-                type: "character varying(255)",
-                maxLength: 255,
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "character varying(255)",
-                oldMaxLength: 255);
 
             migrationBuilder.AlterColumn<DateTime>(
                 name: "created_at",
@@ -596,60 +617,12 @@ namespace SpotRent.Infrastructure.Migrations
                 oldClrType: typeof(DateTime),
                 oldType: "timestamp with time zone");
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "cancelled_at",
-                table: "subscriptions",
-                type: "timestamp with time zone",
-                nullable: true,
-                defaultValueSql: "CURRENT_TIMESTAMP");
-
-            migrationBuilder.AddColumn<DateTime>(
-                name: "payment_created_at",
-                table: "subscriptions",
-                type: "timestamp with time zone",
-                nullable: false,
-                defaultValueSql: "CURRENT_TIMESTAMP");
-
-            migrationBuilder.AddColumn<string>(
-                name: "payment_failure_reason",
-                table: "subscriptions",
-                type: "character varying(1000)",
-                maxLength: 1000,
-                nullable: true);
-
-            migrationBuilder.AddColumn<DateTime>(
-                name: "payment_processed_at",
-                table: "subscriptions",
-                type: "timestamp with time zone",
-                nullable: true);
-
             migrationBuilder.AddColumn<int>(
-                name: "payment_status",
-                table: "subscriptions",
+                name: "address_id",
+                table: "spaces",
                 type: "integer",
                 nullable: false,
                 defaultValue: 0);
-
-            migrationBuilder.AddColumn<decimal>(
-                name: "total_amount",
-                table: "subscriptions",
-                type: "numeric(10,2)",
-                nullable: false,
-                defaultValue: 0m);
-
-            migrationBuilder.AddColumn<long>(
-                name: "transaction_id",
-                table: "subscriptions",
-                type: "bigint",
-                nullable: false,
-                defaultValue: 0L);
-
-            migrationBuilder.AddColumn<string>(
-                name: "address_line",
-                table: "spaces",
-                type: "character varying(200)",
-                maxLength: 200,
-                nullable: true);
 
             migrationBuilder.AddColumn<double>(
                 name: "area_sqm",
@@ -657,27 +630,6 @@ namespace SpotRent.Infrastructure.Migrations
                 type: "double precision",
                 nullable: false,
                 defaultValue: 0.0);
-
-            migrationBuilder.AddColumn<string>(
-                name: "city",
-                table: "spaces",
-                type: "character varying(250)",
-                maxLength: 250,
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "house",
-                table: "spaces",
-                type: "character varying(50)",
-                maxLength: 50,
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "oblast",
-                table: "spaces",
-                type: "character varying(200)",
-                maxLength: 200,
-                nullable: true);
 
             migrationBuilder.AddColumn<int>(
                 name: "owner_id",
@@ -687,68 +639,23 @@ namespace SpotRent.Infrastructure.Migrations
                 defaultValue: 0);
 
             migrationBuilder.AddColumn<string>(
-                name: "street",
+                name: "room",
                 table: "spaces",
-                type: "character varying(250)",
-                maxLength: 250,
-                nullable: true);
-
-            migrationBuilder.AddColumn<DateTime>(
-                name: "updated_at",
-                table: "spaces",
-                type: "timestamp with time zone",
+                type: "character varying(300)",
+                maxLength: 300,
                 nullable: false,
-                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
-
-            migrationBuilder.AlterColumn<string>(
-                name: "device_name",
-                table: "devices",
-                type: "character varying(100)",
-                maxLength: 100,
-                nullable: false,
-                defaultValue: "",
-                oldClrType: typeof(string),
-                oldType: "character varying(100)",
-                oldMaxLength: 100,
-                oldNullable: true);
+                defaultValue: "");
 
             migrationBuilder.AlterColumn<int>(
                 name: "user_id",
-                table: "bookings",
+                table: "access_logs",
                 type: "integer",
                 nullable: true,
                 oldClrType: typeof(int),
                 oldType: "integer");
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "payment_created_at",
-                table: "bookings",
-                type: "timestamp with time zone",
-                nullable: false,
-                defaultValueSql: "CURRENT_TIMESTAMP");
-
-            migrationBuilder.AddColumn<string>(
-                name: "payment_failure_reason",
-                table: "bookings",
-                type: "character varying(1000)",
-                maxLength: 1000,
-                nullable: true);
-
-            migrationBuilder.AddColumn<DateTime>(
-                name: "payment_processed_at",
-                table: "bookings",
-                type: "timestamp with time zone",
-                nullable: true);
-
-            migrationBuilder.AddColumn<long>(
-                name: "transaction_id",
-                table: "bookings",
-                type: "bigint",
-                nullable: false,
-                defaultValue: 0L);
-
             migrationBuilder.AlterColumn<int>(
-                name: "user_id",
+                name: "space_id",
                 table: "access_logs",
                 type: "integer",
                 nullable: true,
@@ -765,7 +672,7 @@ namespace SpotRent.Infrastructure.Migrations
 
             migrationBuilder.AddPrimaryKey(
                 name: "pk_user_refresh_tokens",
-                table: "user_refresh_token",
+                table: "user_refresh_tokens",
                 column: "id");
 
             migrationBuilder.AddPrimaryKey(
@@ -786,6 +693,11 @@ namespace SpotRent.Infrastructure.Migrations
             migrationBuilder.AddPrimaryKey(
                 name: "pk_spaces",
                 table: "spaces",
+                column: "id");
+
+            migrationBuilder.AddPrimaryKey(
+                name: "pk_payments",
+                table: "payments",
                 column: "id");
 
             migrationBuilder.AddPrimaryKey(
@@ -834,13 +746,30 @@ namespace SpotRent.Infrastructure.Migrations
                 column: "id");
 
             migrationBuilder.CreateTable(
+                name: "address",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    building = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    street = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    city = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    region = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_address", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "attribute",
                 columns: table => new
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    data_type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true)
+                    data_type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    unit = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -848,19 +777,22 @@ namespace SpotRent.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "image",
+                name: "working_hours",
                 columns: table => new
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    image_url = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    space_id = table.Column<int>(type: "integer", nullable: false)
+                    space_id = table.Column<int>(type: "integer", nullable: false),
+                    day_of_week = table.Column<int>(type: "integer", nullable: false),
+                    open_time = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
+                    close_time = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
+                    is_closed = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_image", x => x.id);
+                    table.PrimaryKey("pk_working_hours", x => x.id);
                     table.ForeignKey(
-                        name: "fk_image_spaces_space_id",
+                        name: "fk_working_hours_spaces_space_id",
                         column: x => x.space_id,
                         principalTable: "spaces",
                         principalColumn: "id",
@@ -868,26 +800,28 @@ namespace SpotRent.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "space_attribute",
+                name: "attribute_value",
                 columns: table => new
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    attribute_id = table.Column<int>(type: "integer", nullable: false),
+                    value = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    min_value = table.Column<int>(type: "integer", nullable: true),
+                    max_value = table.Column<int>(type: "integer", nullable: true),
                     space_id = table.Column<int>(type: "integer", nullable: false),
-                    value = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
+                    attribute_id = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_space_attribute", x => x.id);
+                    table.PrimaryKey("pk_attribute_value", x => x.id);
                     table.ForeignKey(
-                        name: "fk_space_attribute_attribute_attribute_id",
+                        name: "fk_attribute_value_attribute_attribute_id",
                         column: x => x.attribute_id,
                         principalTable: "attribute",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "fk_space_attribute_spaces_space_id",
+                        name: "fk_attribute_value_spaces_space_id",
                         column: x => x.space_id,
                         principalTable: "spaces",
                         principalColumn: "id",
@@ -895,24 +829,30 @@ namespace SpotRent.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "ix_spaces_address_id",
+                table: "spaces",
+                column: "address_id");
+
+            migrationBuilder.CreateIndex(
                 name: "ix_spaces_owner_id",
                 table: "spaces",
                 column: "owner_id");
 
             migrationBuilder.CreateIndex(
-                name: "ix_image_space_id",
-                table: "image",
-                column: "space_id");
-
-            migrationBuilder.CreateIndex(
-                name: "ix_space_attribute_attribute_id",
-                table: "space_attribute",
+                name: "ix_attribute_value_attribute_id",
+                table: "attribute_value",
                 column: "attribute_id");
 
             migrationBuilder.CreateIndex(
-                name: "ix_space_attribute_space_id",
-                table: "space_attribute",
+                name: "ix_attribute_value_space_id",
+                table: "attribute_value",
                 column: "space_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_working_hours_space_id_day_of_week",
+                table: "working_hours",
+                columns: new[] { "space_id", "day_of_week" },
+                unique: true);
 
             migrationBuilder.AddForeignKey(
                 name: "fk_access_logs_asp_net_users_user_id",
@@ -920,7 +860,7 @@ namespace SpotRent.Infrastructure.Migrations
                 column: "user_id",
                 principalTable: "asp_net_users",
                 principalColumn: "id",
-                onDelete: ReferentialAction.SetNull);
+                onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
                 name: "fk_access_logs_devices_device_id",
@@ -929,6 +869,14 @@ namespace SpotRent.Infrastructure.Migrations
                 principalTable: "devices",
                 principalColumn: "id",
                 onDelete: ReferentialAction.SetNull);
+
+            migrationBuilder.AddForeignKey(
+                name: "fk_access_logs_spaces_space_id",
+                table: "access_logs",
+                column: "space_id",
+                principalTable: "spaces",
+                principalColumn: "id",
+                onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
                 name: "fk_asp_net_role_claims_asp_net_roles_role_id",
@@ -1003,12 +951,36 @@ namespace SpotRent.Infrastructure.Migrations
                 onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
+                name: "fk_payments_bookings_booking_id",
+                table: "payments",
+                column: "booking_id",
+                principalTable: "bookings",
+                principalColumn: "id",
+                onDelete: ReferentialAction.SetNull);
+
+            migrationBuilder.AddForeignKey(
+                name: "fk_payments_subscriptions_subscription_id",
+                table: "payments",
+                column: "subscription_id",
+                principalTable: "subscriptions",
+                principalColumn: "id",
+                onDelete: ReferentialAction.SetNull);
+
+            migrationBuilder.AddForeignKey(
+                name: "fk_spaces_address_address_id",
+                table: "spaces",
+                column: "address_id",
+                principalTable: "address",
+                principalColumn: "id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
                 name: "fk_spaces_asp_net_users_owner_id",
                 table: "spaces",
                 column: "owner_id",
                 principalTable: "asp_net_users",
                 principalColumn: "id",
-                onDelete: ReferentialAction.Cascade);
+                onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
                 name: "fk_subscriptions_asp_net_users_user_id",
@@ -1028,7 +1000,7 @@ namespace SpotRent.Infrastructure.Migrations
 
             migrationBuilder.AddForeignKey(
                 name: "fk_user_refresh_tokens_asp_net_users_user_id",
-                table: "user_refresh_token",
+                table: "user_refresh_tokens",
                 column: "user_id",
                 principalTable: "asp_net_users",
                 principalColumn: "id",
@@ -1044,6 +1016,10 @@ namespace SpotRent.Infrastructure.Migrations
 
             migrationBuilder.DropForeignKey(
                 name: "fk_access_logs_devices_device_id",
+                table: "access_logs");
+
+            migrationBuilder.DropForeignKey(
+                name: "fk_access_logs_spaces_space_id",
                 table: "access_logs");
 
             migrationBuilder.DropForeignKey(
@@ -1083,6 +1059,18 @@ namespace SpotRent.Infrastructure.Migrations
                 table: "devices");
 
             migrationBuilder.DropForeignKey(
+                name: "fk_payments_bookings_booking_id",
+                table: "payments");
+
+            migrationBuilder.DropForeignKey(
+                name: "fk_payments_subscriptions_subscription_id",
+                table: "payments");
+
+            migrationBuilder.DropForeignKey(
+                name: "fk_spaces_address_address_id",
+                table: "spaces");
+
+            migrationBuilder.DropForeignKey(
                 name: "fk_spaces_asp_net_users_owner_id",
                 table: "spaces");
 
@@ -1096,20 +1084,23 @@ namespace SpotRent.Infrastructure.Migrations
 
             migrationBuilder.DropForeignKey(
                 name: "fk_user_refresh_tokens_asp_net_users_user_id",
-                table: "user_refresh_token");
+                table: "user_refresh_tokens");
 
             migrationBuilder.DropTable(
-                name: "image");
+                name: "address");
 
             migrationBuilder.DropTable(
-                name: "space_attribute");
+                name: "attribute_value");
+
+            migrationBuilder.DropTable(
+                name: "working_hours");
 
             migrationBuilder.DropTable(
                 name: "attribute");
 
             migrationBuilder.DropPrimaryKey(
                 name: "pk_user_refresh_tokens",
-                table: "user_refresh_token");
+                table: "user_refresh_tokens");
 
             migrationBuilder.DropPrimaryKey(
                 name: "pk_subscriptions",
@@ -1124,8 +1115,16 @@ namespace SpotRent.Infrastructure.Migrations
                 table: "spaces");
 
             migrationBuilder.DropIndex(
+                name: "ix_spaces_address_id",
+                table: "spaces");
+
+            migrationBuilder.DropIndex(
                 name: "ix_spaces_owner_id",
                 table: "spaces");
+
+            migrationBuilder.DropPrimaryKey(
+                name: "pk_payments",
+                table: "payments");
 
             migrationBuilder.DropPrimaryKey(
                 name: "pk_devices",
@@ -1168,35 +1167,7 @@ namespace SpotRent.Infrastructure.Migrations
                 table: "access_logs");
 
             migrationBuilder.DropColumn(
-                name: "cancelled_at",
-                table: "subscriptions");
-
-            migrationBuilder.DropColumn(
-                name: "payment_created_at",
-                table: "subscriptions");
-
-            migrationBuilder.DropColumn(
-                name: "payment_failure_reason",
-                table: "subscriptions");
-
-            migrationBuilder.DropColumn(
-                name: "payment_processed_at",
-                table: "subscriptions");
-
-            migrationBuilder.DropColumn(
-                name: "payment_status",
-                table: "subscriptions");
-
-            migrationBuilder.DropColumn(
-                name: "total_amount",
-                table: "subscriptions");
-
-            migrationBuilder.DropColumn(
-                name: "transaction_id",
-                table: "subscriptions");
-
-            migrationBuilder.DropColumn(
-                name: "address_line",
+                name: "address_id",
                 table: "spaces");
 
             migrationBuilder.DropColumn(
@@ -1204,44 +1175,16 @@ namespace SpotRent.Infrastructure.Migrations
                 table: "spaces");
 
             migrationBuilder.DropColumn(
-                name: "city",
-                table: "spaces");
-
-            migrationBuilder.DropColumn(
-                name: "house",
-                table: "spaces");
-
-            migrationBuilder.DropColumn(
-                name: "oblast",
-                table: "spaces");
-
-            migrationBuilder.DropColumn(
                 name: "owner_id",
                 table: "spaces");
 
             migrationBuilder.DropColumn(
-                name: "street",
+                name: "room",
                 table: "spaces");
 
-            migrationBuilder.DropColumn(
-                name: "updated_at",
-                table: "spaces");
-
-            migrationBuilder.DropColumn(
-                name: "payment_created_at",
-                table: "bookings");
-
-            migrationBuilder.DropColumn(
-                name: "payment_failure_reason",
-                table: "bookings");
-
-            migrationBuilder.DropColumn(
-                name: "payment_processed_at",
-                table: "bookings");
-
-            migrationBuilder.DropColumn(
-                name: "transaction_id",
-                table: "bookings");
+            migrationBuilder.RenameTable(
+                name: "user_refresh_tokens",
+                newName: "user_refresh_token");
 
             migrationBuilder.RenameTable(
                 name: "subscriptions",
@@ -1254,6 +1197,10 @@ namespace SpotRent.Infrastructure.Migrations
             migrationBuilder.RenameTable(
                 name: "spaces",
                 newName: "space");
+
+            migrationBuilder.RenameTable(
+                name: "payments",
+                newName: "payment");
 
             migrationBuilder.RenameTable(
                 name: "devices",
@@ -1305,6 +1252,11 @@ namespace SpotRent.Infrastructure.Migrations
                 table: "user_refresh_token",
                 newName: "IX_user_refresh_token_user_id");
 
+            migrationBuilder.RenameIndex(
+                name: "IX_user_refresh_tokens_token",
+                table: "user_refresh_token",
+                newName: "IX_user_refresh_token_token");
+
             migrationBuilder.RenameColumn(
                 name: "id",
                 table: "subscription",
@@ -1337,13 +1289,23 @@ namespace SpotRent.Infrastructure.Migrations
 
             migrationBuilder.RenameColumn(
                 name: "id",
-                table: "device",
-                newName: "device_id");
+                table: "payment",
+                newName: "payment_id");
+
+            migrationBuilder.RenameIndex(
+                name: "ix_payments_subscription_id",
+                table: "payment",
+                newName: "IX_payment_subscription_id");
+
+            migrationBuilder.RenameIndex(
+                name: "ix_payments_booking_id",
+                table: "payment",
+                newName: "IX_payment_booking_id");
 
             migrationBuilder.RenameColumn(
-                name: "lock_status",
+                name: "id",
                 table: "device",
-                newName: "status");
+                newName: "device_id");
 
             migrationBuilder.RenameIndex(
                 name: "ix_devices_space_id",
@@ -1354,11 +1316,6 @@ namespace SpotRent.Infrastructure.Migrations
                 name: "id",
                 table: "booking",
                 newName: "booking_id");
-
-            migrationBuilder.RenameColumn(
-                name: "payment_status",
-                table: "booking",
-                newName: "booking_type");
 
             migrationBuilder.RenameIndex(
                 name: "ix_bookings_user_id",
@@ -1389,6 +1346,11 @@ namespace SpotRent.Infrastructure.Migrations
                 name: "security_stamp",
                 table: "user",
                 newName: "SecurityStamp");
+
+            migrationBuilder.RenameColumn(
+                name: "picture_url",
+                table: "user",
+                newName: "PictureUrl");
 
             migrationBuilder.RenameColumn(
                 name: "phone_number_confirmed",
@@ -1606,6 +1568,11 @@ namespace SpotRent.Infrastructure.Migrations
                 newName: "IX_access_log_user_id");
 
             migrationBuilder.RenameIndex(
+                name: "ix_access_logs_space_id",
+                table: "access_log",
+                newName: "IX_access_log_space_id");
+
+            migrationBuilder.RenameIndex(
                 name: "ix_access_logs_device_id",
                 table: "access_log",
                 newName: "IX_access_log_device_id");
@@ -1615,6 +1582,13 @@ namespace SpotRent.Infrastructure.Migrations
                 table: "space",
                 type: "character varying(1000)",
                 maxLength: 1000,
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "floor",
+                table: "space",
+                type: "character varying(50)",
+                maxLength: 50,
                 nullable: true);
 
             migrationBuilder.AddColumn<bool>(
@@ -1645,12 +1619,12 @@ namespace SpotRent.Infrastructure.Migrations
                 nullable: false,
                 defaultValue: false);
 
-            migrationBuilder.AddColumn<string>(
-                name: "image_url",
+            migrationBuilder.AddColumn<bool>(
+                name: "is_available",
                 table: "space",
-                type: "character varying(500)",
-                maxLength: 500,
-                nullable: true);
+                type: "boolean",
+                nullable: false,
+                defaultValue: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "room_number",
@@ -1659,15 +1633,12 @@ namespace SpotRent.Infrastructure.Migrations
                 maxLength: 20,
                 nullable: true);
 
-            migrationBuilder.AlterColumn<string>(
-                name: "device_name",
-                table: "device",
-                type: "character varying(100)",
-                maxLength: 100,
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "character varying(100)",
-                oldMaxLength: 100);
+            migrationBuilder.AddColumn<int>(
+                name: "user_id",
+                table: "payment",
+                type: "integer",
+                nullable: false,
+                defaultValue: 0);
 
             migrationBuilder.AddColumn<string>(
                 name: "device_identifier",
@@ -1683,28 +1654,6 @@ namespace SpotRent.Infrastructure.Migrations
                 type: "timestamp with time zone",
                 nullable: true);
 
-            migrationBuilder.AlterColumn<int>(
-                name: "user_id",
-                table: "booking",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0,
-                oldClrType: typeof(int),
-                oldType: "integer",
-                oldNullable: true);
-
-            migrationBuilder.AlterColumn<string>(
-                name: "phone_number",
-                table: "user",
-                type: "character varying(30)",
-                maxLength: 30,
-                nullable: false,
-                defaultValue: "",
-                oldClrType: typeof(string),
-                oldType: "character varying(30)",
-                oldMaxLength: 30,
-                oldNullable: true);
-
             migrationBuilder.AlterColumn<DateTime>(
                 name: "UpdatedAt",
                 table: "user",
@@ -1713,18 +1662,6 @@ namespace SpotRent.Infrastructure.Migrations
                 oldClrType: typeof(DateTime),
                 oldType: "timestamp with time zone",
                 oldDefaultValueSql: "CURRENT_TIMESTAMP");
-
-            migrationBuilder.AlterColumn<string>(
-                name: "GoogleId",
-                table: "user",
-                type: "character varying(255)",
-                maxLength: 255,
-                nullable: false,
-                defaultValue: "",
-                oldClrType: typeof(string),
-                oldType: "character varying(255)",
-                oldMaxLength: 255,
-                oldNullable: true);
 
             migrationBuilder.AlterColumn<DateTime>(
                 name: "CreatedAt",
@@ -1735,15 +1672,18 @@ namespace SpotRent.Infrastructure.Migrations
                 oldType: "timestamp with time zone",
                 oldDefaultValueSql: "CURRENT_TIMESTAMP");
 
-            migrationBuilder.AddColumn<string>(
-                name: "PictureUrl",
-                table: "user",
-                type: "character varying(400)",
-                maxLength: 400,
-                nullable: true);
-
             migrationBuilder.AlterColumn<int>(
                 name: "user_id",
+                table: "access_log",
+                type: "integer",
+                nullable: false,
+                defaultValue: 0,
+                oldClrType: typeof(int),
+                oldType: "integer",
+                oldNullable: true);
+
+            migrationBuilder.AlterColumn<int>(
+                name: "space_id",
                 table: "access_log",
                 type: "integer",
                 nullable: false,
@@ -1768,13 +1708,6 @@ namespace SpotRent.Infrastructure.Migrations
                 type: "integer",
                 nullable: true);
 
-            migrationBuilder.AddColumn<int>(
-                name: "space_id",
-                table: "access_log",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0);
-
             migrationBuilder.AddPrimaryKey(
                 name: "PK_user_refresh_token",
                 table: "user_refresh_token",
@@ -1794,6 +1727,11 @@ namespace SpotRent.Infrastructure.Migrations
                 name: "PK_space",
                 table: "space",
                 column: "space_id");
+
+            migrationBuilder.AddPrimaryKey(
+                name: "PK_payment",
+                table: "payment",
+                column: "payment_id");
 
             migrationBuilder.AddPrimaryKey(
                 name: "PK_device",
@@ -1845,70 +1783,15 @@ namespace SpotRent.Infrastructure.Migrations
                 table: "access_log",
                 column: "access_log_id");
 
-            migrationBuilder.CreateTable(
-                name: "payment",
-                columns: table => new
-                {
-                    payment_id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    booking_id = table.Column<int>(type: "integer", nullable: true),
-                    subscription_id = table.Column<int>(type: "integer", nullable: true),
-                    user_id = table.Column<int>(type: "integer", nullable: false),
-                    amount = table.Column<decimal>(type: "numeric(10,2)", nullable: false),
-                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    failure_reason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    processed_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    status = table.Column<int>(type: "integer", nullable: false),
-                    transaction_id = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_payment", x => x.payment_id);
-                    table.ForeignKey(
-                        name: "FK_payment_booking_booking_id",
-                        column: x => x.booking_id,
-                        principalTable: "booking",
-                        principalColumn: "booking_id",
-                        onDelete: ReferentialAction.SetNull);
-                    table.ForeignKey(
-                        name: "FK_payment_subscription_subscription_id",
-                        column: x => x.subscription_id,
-                        principalTable: "subscription",
-                        principalColumn: "subscription_id",
-                        onDelete: ReferentialAction.SetNull);
-                    table.ForeignKey(
-                        name: "FK_payment_user_user_id",
-                        column: x => x.user_id,
-                        principalTable: "user",
-                        principalColumn: "user_id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+            migrationBuilder.CreateIndex(
+                name: "IX_payment_user_id",
+                table: "payment",
+                column: "user_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_access_log_BookingId",
                 table: "access_log",
                 column: "BookingId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_access_log_space_id",
-                table: "access_log",
-                column: "space_id");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_payment_booking_id",
-                table: "payment",
-                column: "booking_id",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_payment_subscription_id",
-                table: "payment",
-                column: "subscription_id");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_payment_user_id",
-                table: "payment",
-                column: "user_id");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_access_log_booking_BookingId",
@@ -2011,6 +1894,30 @@ namespace SpotRent.Infrastructure.Migrations
                 column: "space_id",
                 principalTable: "space",
                 principalColumn: "space_id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_payment_booking_booking_id",
+                table: "payment",
+                column: "booking_id",
+                principalTable: "booking",
+                principalColumn: "booking_id",
+                onDelete: ReferentialAction.SetNull);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_payment_subscription_subscription_id",
+                table: "payment",
+                column: "subscription_id",
+                principalTable: "subscription",
+                principalColumn: "subscription_id",
+                onDelete: ReferentialAction.SetNull);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_payment_user_user_id",
+                table: "payment",
+                column: "user_id",
+                principalTable: "user",
+                principalColumn: "user_id",
                 onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(

@@ -1,9 +1,11 @@
-﻿using System.Security.Claims;
+﻿using System.Reflection;
+using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SpotRent.Api;
 using SpotRent.Api.Dtos;
 using SpotRent.Domain.Entities;
 using SpotRent.Infrastructure;
@@ -105,16 +107,6 @@ if (app.Environment.IsDevelopment())
 }
 
 // app.UseMiddleware<ExceptionHandlerMiddleware>();
-//using var scope = app.Services.CreateScope();
-//var services = scope.ServiceProvider;
-//try
-//{
-//    DataSeed.Seed(services);
-//}
-//catch (Exception ex)
-//{
-//    Debug.WriteLine(ex.Message, ex.StackTrace);
-//}
 
 app.UseCors("AllowAllOrigins");
 app.UseAuthentication();

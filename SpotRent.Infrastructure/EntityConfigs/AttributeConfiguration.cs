@@ -17,7 +17,9 @@ public class AttributeConfiguration : IEntityTypeConfiguration<Attribute>
         builder.Property(a => a.DataType)
             .HasMaxLength(50);
 
-        builder.HasMany(a => a.SpaceAttributes)
+        builder.Property(a => a.Unit);
+
+        builder.HasMany(a => a.AttributeValues)
             .WithOne(pa => pa.Attribute)
             .HasForeignKey(pa => pa.AttributeId)
             .OnDelete(DeleteBehavior.Restrict);

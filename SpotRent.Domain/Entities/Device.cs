@@ -10,7 +10,7 @@ public class Device
 
     public string DeviceName { get; set; }
 
-    public LockStatus? LockStatus { get; set; }
+    public LockStatus? Status { get; set; }
 
     public bool IsOnline { get; set; }
 

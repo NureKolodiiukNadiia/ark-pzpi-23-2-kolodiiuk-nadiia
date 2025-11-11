@@ -6,8 +6,6 @@ public class Space
 {
     public int Id { get; set; }
 
-    public int OwnerId { get; set; }
-
     public string Name { get; set; }
 
     public string Description { get; set; }
@@ -16,34 +14,35 @@ public class Space
 
     public double AreaSqm { get; set; }
 
+    public string Room { get; set; }
+
     public int Capacity { get; set; }
 
     public decimal HourlyRate { get; set; }
 
+    public string ImageUrl { get; set; }
+
+    public int OwnerId { get; set; }
+
+    public int AddressId { get; set; }
+
     public bool IsAvailable { get; set; } = true;
 
-    public string AddressLine { get; set; }
-
-    public string Floor { get; set; }
-
-    public string House { get; set; }
-
-    public string Street { get; set; }
-
-    public string City { get; set; }
-
-    public string Oblast { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public Address Address { get; set; }
+
+    public ICollection<AttributeValue> AttributeValues { get; set; } = new List<AttributeValue>();
 
     public DateTime UpdatedAt { get; set; }
 
     public User Owner { get; set; } = new User();
 
-    public ICollection<Image> Images { get; set; } = new List<Image>();
-
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 
     public ICollection<Device> Devices { get; set; } = new List<Device>();
 
-    public ICollection<SpaceAttribute> SpaceAttributes { get; set; } = new List<SpaceAttribute>();
+    public ICollection<AccessLog> AccessLogs { get; set; } = new List<AccessLog>();
+
+    public ICollection<WorkingHours> WorkingHours { get; set; } = new List<WorkingHours>();
 }

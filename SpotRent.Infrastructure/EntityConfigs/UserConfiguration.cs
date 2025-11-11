@@ -10,7 +10,14 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
     {
         builder.HasKey(u => u.Id);
 
+        builder.Property(e => e.GoogleId)
+            .IsRequired()
+            .HasMaxLength(255);
+
         builder.Property(u => u.Id);
+
+        builder.Property(u => u.PictureUrl)
+            .HasMaxLength(400);
 
         builder.Property(u => u.FirstName)
             .IsRequired()
@@ -25,21 +32,26 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(150);
 
         builder.Property(u => u.PhoneNumber)
+            .IsRequired()
             .HasMaxLength(30);
 
         builder.Property(u => u.Role)
             .IsRequired();
-
-        builder.Property(e => e.GoogleId)
-            .HasMaxLength(255);
-
-        builder.Property(s => s.CreatedAt)
+        
+        builder.Property(u => u.CreatedAt)
             .HasColumnType("timestamp with time zone")
+            .IsRequired()
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-        builder.Property(s => s.UpdatedAt)
+        builder.Property(u => u.UpdatedAt)
             .HasColumnType("timestamp with time zone")
+            .IsRequired()
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+        builder.HasMany(u => u.Spaces)
+            .WithOne(s => s.Owner)
+            .HasForeignKey(s => s.OwnerId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(u => u.Subscriptions)
             .WithOne(s => s.User)
@@ -54,6 +66,11 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasMany(u => u.AccessLogs)
             .WithOne(a => a.User)
             .HasForeignKey(a => a.UserId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(u => u.RefreshTokens)
+            .WithOne(rt => rt.User)
+            .HasForeignKey(rt => rt.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

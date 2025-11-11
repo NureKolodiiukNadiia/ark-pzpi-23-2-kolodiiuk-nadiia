@@ -13,6 +13,8 @@ public class AccessLogConfiguration : IEntityTypeConfiguration<AccessLog>
 
         builder.Property(a => a.UserId);
 
+        builder.Property(a => a.SpaceId);
+
         builder.Property(a => a.DeviceId);
 
         builder.Property(a => a.AccessType)
@@ -33,6 +35,11 @@ public class AccessLogConfiguration : IEntityTypeConfiguration<AccessLog>
         builder.HasOne(a => a.User)
             .WithMany(u => u.AccessLogs)
             .HasForeignKey(a => a.UserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(a => a.Space)
+            .WithMany(s => s.AccessLogs)
+            .HasForeignKey(a => a.SpaceId)
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne(a => a.Device)

@@ -11,9 +11,6 @@ public class SpaceConfiguration : IEntityTypeConfiguration<Space>
         builder.HasKey(s => s.Id);
         builder.Property(s => s.Id);
 
-        builder.Property(s => s.OwnerId)
-            .IsRequired();
-
         builder.Property(s => s.Name)
             .IsRequired()
             .HasMaxLength(200);
@@ -24,50 +21,34 @@ public class SpaceConfiguration : IEntityTypeConfiguration<Space>
         builder.Property(s => s.SpaceType)
             .IsRequired();
 
-        builder.Property(s => s.AreaSqm);
-
         builder.Property(s => s.Capacity)
             .IsRequired();
-
-        builder.Property(s => s.Capacity)
+        
+        builder.Property(s => s.AreaSqm)
+            .IsRequired();
+        
+        builder.Property(s => s.Room)
+            .HasMaxLength(300)
             .IsRequired();
 
         builder.Property(s => s.HourlyRate)
             .IsRequired()
             .HasColumnType("decimal(10,2)");
 
-        builder.Property(s => s.IsAvailable)
-            .IsRequired()
-            .HasDefaultValue(true);
-
-        builder.Property(s => s.AddressLine)
-            .HasMaxLength(200);
-
-        builder.Property(s => s.Floor)
-            .HasMaxLength(50);
-
-        builder.Property(s => s.House)
-            .HasMaxLength(50);
-
-        builder.Property(s => s.Street)
-            .HasMaxLength(250);
-
-        builder.Property(s => s.City)
-            .HasMaxLength(250);
-
-        builder.Property(s => s.Oblast)
-            .HasMaxLength(200);
+        builder.Property(s => s.ImageUrl)
+            .HasMaxLength(500);
 
         builder.Property(s => s.CreatedAt)
             .HasColumnType("timestamp with time zone")
             .IsRequired()
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-        builder.Property(s => s.CreatedAt)
-            .HasColumnType("timestamp with time zone")
-            .IsRequired()
-            .HasDefaultValueSql("CURRENT_TIMESTAMP");
+        builder.Property(s => s.OwnerId)
+            .IsRequired();
 
+        builder.Property(s => s.AddressId)
+            .IsRequired();
+        
         builder.HasMany(s => s.Bookings)
             .WithOne(b => b.Space)
             .HasForeignKey(b => b.SpaceId)
@@ -78,19 +59,29 @@ public class SpaceConfiguration : IEntityTypeConfiguration<Space>
             .HasForeignKey(d => d.SpaceId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(s => s.Images)
-            .WithOne(i => i.Space)
-            .HasForeignKey(i => i.SpaceId)
+        builder.HasMany(s => s.WorkingHours)
+            .WithOne(wh => wh.Space)
+            .HasForeignKey(wh => wh.SpaceId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasMany(s => s.SpaceAttributes)
-            .WithOne(sa => sa.Space)
-            .HasForeignKey(sa => sa.SpaceId)
+        
+        builder.HasMany(s => s.AttributeValues)
+            .WithOne(av => av.Space)
+            .HasForeignKey(av => av.SpaceId)
             .OnDelete(DeleteBehavior.Cascade);
-
+        
         builder.HasOne(s => s.Owner)
             .WithMany(u => u.Spaces)
-            .HasForeignKey(d => d.OwnerId)
+            .HasForeignKey(s => s.OwnerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(s => s.Address)
+            .WithMany(a => a.Spaces)
+            .HasForeignKey(s => s.AddressId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(s => s.AccessLogs)
+            .WithOne(al => al.Space)
+            .HasForeignKey(al => al.SpaceId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

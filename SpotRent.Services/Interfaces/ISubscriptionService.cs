@@ -6,19 +6,19 @@ namespace SpotRent.Services.Interfaces;
 
 public interface ISubscriptionService
 {
-    Task<Result<Subscription>> GetCurrentUserSubscriptionAsync(int userId);
-
-    Task<Result<Subscription>> GetSubscriptionByIdAsync(int id);
-
-    Task<Result<IEnumerable<SubscriptionPlan>>> GetPlansAsync();
-    
-    Task<Result<SubscriptionPlan>> GetPlanByIdAsync(int id);
-
     Task<Result<int>> SubscribeAsync(int userId, int subscriptionPlanId);
+
+    Task<Result<Subscription>> GetCurrentUserSubscriptionAsync(int userId);
 
     Task<Result<SubscriptionHistory>> GetSubscriptionHistoryAsync(int userId, int page, int pageSize);
 
-    Task<Result> CancelSubscriptionAsync(int subscriptionId);
+    Task<Result<IEnumerable<SubscriptionPlan>>> GetPlansAsync();
+
+    Task<Result<SubscriptionPlan>> GetPlanByIdAsync(int id);
+
+    Task<Result<Subscription>> GetSubscriptionByIdAsync(int id);
 
     Task<Result<Subscription>> ChangeSubscriptionAsync(int currSubscriptionId, int newPlanId);
+
+    Task<Result> CancelSubscriptionAsync(int subscriptionId);
 }

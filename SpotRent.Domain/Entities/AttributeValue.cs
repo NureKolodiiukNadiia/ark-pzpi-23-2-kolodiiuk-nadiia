@@ -1,14 +1,18 @@
 namespace SpotRent.Domain.Entities;
 
-public class SpaceAttribute
+public class AttributeValue
 {
     public int Id { get; set; }
 
-    public int AttributeId { get; set; }
+    public string Value { get; set; }
+
+    public int? MinValue { get; set; }
+
+    public int? MaxValue { get; set; }
 
     public int SpaceId { get; set; }
 
-    public string Value { get; set; }
+    public int AttributeId { get; set; }
 
     public Space Space { get; set; }
 

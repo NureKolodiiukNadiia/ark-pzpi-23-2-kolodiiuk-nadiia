@@ -15,10 +15,9 @@ public class DeviceConfiguration : IEntityTypeConfiguration<Device>
             .IsRequired();
 
         builder.Property(d => d.DeviceName)
-            .IsRequired()
             .HasMaxLength(100);
 
-        builder.Property(d => d.LockStatus);
+        builder.Property(d => d.Status);
 
         builder.Property(d => d.IsOnline)
             .IsRequired();

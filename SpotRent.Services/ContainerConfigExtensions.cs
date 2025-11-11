@@ -3,6 +3,7 @@ using SpotRent.Services.Auth;
 using SpotRent.Services.Bookings;
 using SpotRent.Services.Interfaces;
 using SpotRent.Services.Payment;
+using SpotRent.Services.Spaces;
 
 namespace SpotRent.Services;
 
@@ -14,5 +15,6 @@ public static class ContainerConfigExtensions
         services.AddScoped<IBookingService, BookingService>();
         services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<IJwtService, JwtService>();
+        services.AddScoped<ISpaceService, SpaceService>();
     }
 }

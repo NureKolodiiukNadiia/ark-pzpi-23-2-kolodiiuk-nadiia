@@ -26,11 +26,9 @@ public class SubscriptionPlanConfiguration : IEntityTypeConfiguration<Subscripti
             .IsRequired();
 
         builder.Property(sp => sp.IncludedHours)
-            .HasColumnName("included_hours")
             .IsRequired();
 
         builder.Property(sp => sp.IsActive)
-            .HasColumnName("is_active")
             .IsRequired()
             .HasDefaultValue(true);
 

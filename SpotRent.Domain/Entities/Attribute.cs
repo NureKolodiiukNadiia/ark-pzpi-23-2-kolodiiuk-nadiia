@@ -7,6 +7,8 @@ public class Attribute
     public string Name { get; set; }
 
     public string DataType { get; set; }
+    
+    public string Unit { get; set; }
 
-    public ICollection<SpaceAttribute> SpaceAttributes { get; set; } = new List<SpaceAttribute>();
+    public ICollection<AttributeValue> AttributeValues { get; set; } = new List<AttributeValue>();
 }
