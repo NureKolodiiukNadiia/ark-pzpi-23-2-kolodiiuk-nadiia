@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using SpotRent.Domain.Common;
 using SpotRent.Domain.Entities;
 using SpotRent.Infrastructure;
@@ -9,18 +10,31 @@ namespace SpotRent.Services.Bookings;
 public class BookingService : IBookingService
 {
     private readonly SpotRentDbContext _context;
+    
+    private readonly ILogger<BookingService> _logger;
 
-    public BookingService(SpotRentDbContext context)
+    public BookingService(SpotRentDbContext context, ILogger<BookingService> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
-    public async Task<Result<IEnumerable<Booking>>> GetUserBookingsAsync(int userId)
+    public async Task<Result<Booking>> CreateBookingAsync(Booking booking)
     {
         throw new NotImplementedException();
     }
 
-    public async Task<Result<IEnumerable<Booking>>> GetAllBookingsAsync()
+    public async Task<Result<IEnumerable<Booking>>> GetUserBookingsHistoryAsync(int userId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<Result<IEnumerable<Booking>>> GetUserActiveBookingsAsync(int userId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<Result<IEnumerable<Booking>>> GetOwnerBookingsAsync(int ownerId)
     {
         throw new NotImplementedException();
     }
@@ -34,17 +48,12 @@ public class BookingService : IBookingService
             : Result.Success(booking);
     }
 
-    public async Task<Result<Booking>> CreateBookingAsync(Booking booking)
-    {
-        throw new NotImplementedException();
-    }
-
     public async Task<Result<Booking>> UpdateBookingAsync(Booking booking)
     {
         throw new NotImplementedException();
     }
 
-    public async Task<Result> DeleteBookingAsync(int id)
+    public async Task<Result> CancelBookingAsync(int id)
     {
         var booking = await _context.Bookings.FindAsync(id);
         if (booking == null)

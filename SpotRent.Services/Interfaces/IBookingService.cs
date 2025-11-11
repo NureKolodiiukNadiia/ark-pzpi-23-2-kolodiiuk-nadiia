@@ -5,21 +5,23 @@ namespace SpotRent.Services.Interfaces;
 
 public interface IBookingService
 {
-    Task<Result<IEnumerable<Booking>>> GetUserBookingsAsync(int userId);
+    Task<Result<Booking>> CreateBookingAsync(Booking booking);
+    
+    Task<Result<IEnumerable<Booking>>> GetUserBookingsHistoryAsync(int userId);
 
-    Task<Result<IEnumerable<Booking>>> GetAllBookingsAsync();
+    Task<Result<IEnumerable<Booking>>> GetUserActiveBookingsAsync(int userId);
+
+    Task<Result<IEnumerable<Booking>>> GetOwnerBookingsAsync(int ownerId);
+
+    Task<Result<IEnumerable<Booking>>> GetBookingsAsync(BookingFilterRequest filterRequest);
 
     Task<Result<Booking>> GetBookingByIdAsync(int id);
 
-    Task<Result<Booking>> CreateBookingAsync(Booking booking);
-
     Task<Result<Booking>> UpdateBookingAsync(Booking booking);
 
-    Task<Result> DeleteBookingAsync(int id);
+    Task<Result> CancelBookingAsync(int id);
+}
 
-    // Task<decimal> CalculateBookingCostAsync(int workspaceId, DateTime startTime, DateTime endTime);
-    // Task<bool> IsBookingActiveAsync(int bookingId);
-    // Task<Booking> GetActiveBookingAsync(int userId, int workspaceId);
-    //
-    // Task<IEnumerable<Booking>> GetBookingsByDateRangeAsync(DateTime startDate, DateTime endDate);
+public class BookingFilterRequest
+{
 }
