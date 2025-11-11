@@ -6,7 +6,7 @@ using SpotRent.Services.Interfaces;
 namespace SpotRent.Api.Controllers;
 
 [ApiController]
-[Route("api/subscriptions")]
+[Route("api/[controller]")]
 public class SubscriptionController : ControllerBase
 {
     private readonly ISubscriptionService _subscriptionService;
@@ -14,30 +14,6 @@ public class SubscriptionController : ControllerBase
     public SubscriptionController(ISubscriptionService subscriptionService)
     {
         _subscriptionService = subscriptionService;
-    }
-
-    [HttpGet("plans")]
-    public async Task<IActionResult> GetPlansAsync()
-    {
-        var result = await _subscriptionService.GetPlansAsync();
-        if (result.Failure)
-        {
-            return BadRequest(result.Error);
-        }
-
-        return Ok(new { data = result.Value });
-    }
-
-    [HttpGet("plans/{id:int}")]
-    public async Task<IActionResult> GetPlanAsync(int id)
-    {
-        var result = await _subscriptionService.GetPlanByIdAsync(id);
-        if (result.Failure)
-        {
-            return BadRequest(result.Error);
-        }
-
-        return Ok(result.Value);
     }
 
     [Authorize(Roles = "User")]
@@ -52,6 +28,7 @@ public class SubscriptionController : ControllerBase
 
         return StatusCode(StatusCodes.Status201Created, new { id = result.Value });
     }
+
 
     [Authorize(Roles = "User")]
     [HttpGet("me/{userId:int}")]
@@ -91,26 +68,22 @@ public class SubscriptionController : ControllerBase
         });
     }
 
-    [Authorize(Roles = "User")]
-    [HttpPost("{userId:int}/{subscriptionId:int}/cancel")]
-    public async Task<ActionResult> CancelSubscriptionAsync(int userId, int subscriptionId)
+    [HttpGet("plans")]
+    public async Task<IActionResult> GetPlansAsync()
     {
-        //todo:check user
-        var result = await _subscriptionService.CancelSubscriptionAsync(subscriptionId);
+        var result = await _subscriptionService.GetPlansAsync();
         if (result.Failure)
         {
             return BadRequest(result.Error);
         }
 
-        return Ok();
+        return Ok(new { data = result.Value });
     }
 
-    [Authorize(Roles = "User")]
-    [HttpPost("{id:int}/change")]
-    public async Task<ActionResult> ChangeSubscriptionAsync(ChangePlanRequest request)
+    [HttpGet("plans/{id:int}")]
+    public async Task<IActionResult> GetPlanAsync(int id)
     {
-        //todo: check user
-        var result = await _subscriptionService.ChangeSubscriptionAsync(request.SubscriptionId, request.NewPlanId);
+        var result = await _subscriptionService.GetPlanByIdAsync(id);
         if (result.Failure)
         {
             return BadRequest(result.Error);
@@ -129,5 +102,33 @@ public class SubscriptionController : ControllerBase
         }
 
         return Ok(subscriptionByIdResult.Value);
+    }
+
+    [Authorize(Roles = "User")]
+    [HttpPost("{id:int}/change")]
+    public async Task<ActionResult> ChangeSubscriptionAsync(ChangePlanRequest request)
+    {
+        //todo: check user
+        var result = await _subscriptionService.ChangeSubscriptionAsync(request.SubscriptionId, request.NewPlanId);
+        if (result.Failure)
+        {
+            return BadRequest(result.Error);
+        }
+
+        return Ok(result.Value);
+    }
+
+    [Authorize(Roles = "User")]
+    [HttpPost("{userId:int}/{subscriptionId:int}/cancel")]
+    public async Task<ActionResult> CancelSubscriptionAsync(int userId, int subscriptionId)
+    {
+        //todo:check user
+        var result = await _subscriptionService.CancelSubscriptionAsync(subscriptionId);
+        if (result.Failure)
+        {
+            return BadRequest(result.Error);
+        }
+
+        return Ok();
     }
 }

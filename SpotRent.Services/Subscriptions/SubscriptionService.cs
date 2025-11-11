@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using SpotRent.Domain.Common;
 using SpotRent.Domain.Entities;
 using SpotRent.Infrastructure;
@@ -9,12 +10,35 @@ public class SubscriptionService : ISubscriptionService
 {
     private readonly SpotRentDbContext _context;
 
-    public SubscriptionService(SpotRentDbContext context)
+    private readonly ILogger<SubscriptionService> _logger;
+
+    public SubscriptionService(SpotRentDbContext context, ILogger<SubscriptionService> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
-    public async Task<Result<IEnumerable<Subscription>>> GetAllSubscriptionsAsync()
+    public async Task<Result<int>> SubscribeAsync(int userId, int subscriptionPlanId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<Result<Subscription>> GetCurrentUserSubscriptionAsync(int userId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<Result<SubscriptionHistory>> GetSubscriptionHistoryAsync(int userId, int page, int pageSize)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<Result<IEnumerable<SubscriptionPlan>>> GetPlansAsync()
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<Result<SubscriptionPlan>> GetPlanByIdAsync(int id)
     {
         throw new NotImplementedException();
     }
@@ -28,19 +52,15 @@ public class SubscriptionService : ISubscriptionService
             : Result.Success(subscription);
     }
 
-    public async Task<Result<int>> AddSubscriptionAsync(Subscription subscription)
+    public async Task<Result<Subscription>> ChangeSubscriptionAsync(int currSubscriptionId, int newPlanId)
     {
         throw new NotImplementedException();
     }
 
-    public Task<Result<Subscription>> UpdateSubscriptionAsync(Subscription subscription)
+    public async Task<Result> CancelSubscriptionAsync(int subscriptionId)
     {
         throw new NotImplementedException();
-    }
-
-    public async Task<Result> DeleteSubscriptionAsync(int id)
-    {
-        var subscription = await _context.Subscriptions.FindAsync(id);
+        var subscription = await _context.Subscriptions.FindAsync(subscriptionId);
         if (subscription == null)
         {
             return Result.Fail("No subscription with specified id");
