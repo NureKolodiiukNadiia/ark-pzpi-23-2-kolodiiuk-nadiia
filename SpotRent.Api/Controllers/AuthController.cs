@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SpotRent.Api.Dto;
+using SpotRent.Api.Dtos;
 using SpotRent.Domain.Entities;
 using SpotRent.Domain.Enums;
 using SpotRent.Services.Interfaces;
@@ -72,12 +72,13 @@ public class AuthController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var user = new User()
+        var user = new User
         {
             Email = registerRequest.Email,
             NormalizedEmail = registerRequest.Email.ToUpper(),
-            Role = Role.User
+            Role = Role.Admin,
         };
+
         var result = await _authService.RegisterAsync(user, registerRequest.Password,
             registerRequest.PhoneNumber, registerRequest.FirstName, registerRequest.LastName);
         if (result.Failure)
@@ -213,11 +214,11 @@ public class AuthController : ControllerBase
             return BadRequest(new ProblemDetails() { Title = "Invalid register data" });
         }
 
-        var user = new User()
+        var user = new User
         {
             Email = registerRequest.Email,
             NormalizedEmail = registerRequest.Email.ToUpper(),
-            Role = Role.Admin
+            Role = Role.Admin,
         };
 
         var result = await _authService.RegisterAsync(user, registerRequest.Password,

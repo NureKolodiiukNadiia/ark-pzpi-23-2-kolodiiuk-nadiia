@@ -18,7 +18,15 @@ public class Booking
 
     public decimal TotalAmount { get; set; }
 
-    public Duration BookingType { get; set; }
+    public PaymentStatus PaymentStatus { get; set; }
+
+    public long TransactionId { get; set; }
+
+    public DateTime? PaymentProcessedAt { get; set; }
+
+    public DateTime PaymentCreatedAt { get; set; }
+
+    public string PaymentFailureReason { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -29,6 +37,4 @@ public class Booking
     public User User { get; set; }
 
     public Space Space { get; set; }
-
-    public Payment Payment { get; set; }
 }

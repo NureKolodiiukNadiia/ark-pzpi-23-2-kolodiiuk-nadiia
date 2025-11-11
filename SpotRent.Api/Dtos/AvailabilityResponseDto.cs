@@ -1,4 +1,4 @@
-namespace SpotRent.Api.Dto.Space;
+namespace SpotRent.Api.Dtos;
 
 public record AvailabilityResponseDto(int SpaceId)
 {

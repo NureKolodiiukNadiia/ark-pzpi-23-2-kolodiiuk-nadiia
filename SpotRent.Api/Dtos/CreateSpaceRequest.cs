@@ -1,6 +1,7 @@
+using SpotRent.Domain.Entities;
 using SpotRent.Domain.Enums;
 
-namespace SpotRent.Api.Dto.Space;
+namespace SpotRent.Api.Dtos;
 
 public record CreateSpaceRequest
 {
@@ -16,7 +17,9 @@ public record CreateSpaceRequest
 
     public decimal HourlyRate { get; init; }
 
+    public Address Address { get; init; }
+
     public IEnumerable<int> EquipmentIds { get; init; } = [];
 
-    public IEnumerable<WorkingHourDto> WorkingHours { get; init; } = [];
+    public IEnumerable<WorkingHoursDto> WorkingHours { get; init; } = [];
 }

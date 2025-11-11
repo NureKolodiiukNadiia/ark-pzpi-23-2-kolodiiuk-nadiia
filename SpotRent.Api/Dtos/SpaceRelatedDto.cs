@@ -1,4 +1,13 @@
-namespace SpotRent.Api.Dto.Space;
+using SpotRent.Domain.Entities;
+
+namespace SpotRent.Api.Dtos;
+
+public record AvailabilityDayDto(DateTime Date, bool IsAvailable)
+{
+    public IEnumerable<WorkingHoursDto> BookedSlots { get; init; } = Array.Empty<WorkingHoursDto>();
+
+    public IEnumerable<WorkingHoursDto> AvailableSlots { get; init; } = Array.Empty<WorkingHoursDto>();
+}
 
 public record SpaceDetailDto
 {
@@ -18,10 +27,10 @@ public record SpaceDetailDto
 
     public decimal DailyRate { get; init; }
 
+    public Address Address { get; init; }
+
     public IEnumerable<string> Images { get; init; } = Array.Empty<string>();
-    
-    public IEnumerable<WorkingHourDto> WorkingHours { get; init; } = Array.Empty<WorkingHourDto>();
-    
+
     public double Rating { get; init; }
 
     public int ReviewCount { get; init; }

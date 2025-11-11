@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using SpotRent.Domain.Enums;
 
 namespace SpotRent.Domain.Entities;
@@ -27,13 +26,17 @@ public class Space
 
     public int AddressId { get; set; }
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsAvailable { get; set; } = true;
 
-    public User Owner { get; set; } = new User();
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public Address Address { get; set; }
 
     public ICollection<AttributeValue> AttributeValues { get; set; } = new List<AttributeValue>();
+
+    public DateTime UpdatedAt { get; set; }
+
+    public User Owner { get; set; } = new User();
 
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 

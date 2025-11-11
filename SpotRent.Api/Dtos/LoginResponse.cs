@@ -1,4 +1,4 @@
-namespace SpotRent.Api.Dto;
+namespace SpotRent.Api.Dtos;
 
 public class LoginResponse
 {

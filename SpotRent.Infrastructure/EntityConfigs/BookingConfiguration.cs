@@ -34,9 +34,6 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
             .HasColumnType("decimal(10,2)")
             .IsRequired();
 
-        builder.Property(b => b.BookingType)
-            .IsRequired();
-
         builder.Property(b => b.CreatedAt)
             .HasColumnType("timestamp with time zone")
             .IsRequired()
@@ -58,10 +55,5 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
             .WithMany(s => s.Bookings)
             .HasForeignKey(b => b.SpaceId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(b => b.Payment)
-            .WithOne(p => p.Booking)
-            .HasForeignKey<Payment>(p => p.BookingId)
-            .OnDelete(DeleteBehavior.Cascade);
     }
 }

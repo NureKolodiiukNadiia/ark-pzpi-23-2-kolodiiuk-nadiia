@@ -1,4 +1,4 @@
-namespace SpotRent.Api.Dto.Subscriptions;
+namespace SpotRent.Api.Dtos;
 
 public class UpdateSubscriptionDto
 {

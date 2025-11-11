@@ -240,7 +240,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_access_logs_user_id");
 
-                    b.ToTable("access_logs");
+                    b.ToTable("access_logs", (string)null);
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.Address", b =>
@@ -278,7 +278,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_address");
 
-                    b.ToTable("address");
+                    b.ToTable("address", (string)null);
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.Attribute", b =>
@@ -308,7 +308,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_attribute");
 
-                    b.ToTable("attribute");
+                    b.ToTable("attribute", (string)null);
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.AttributeValue", b =>
@@ -351,7 +351,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("SpaceId")
                         .HasDatabaseName("ix_attribute_value_space_id");
 
-                    b.ToTable("attribute_value");
+                    b.ToTable("attribute_value", (string)null);
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.Booking", b =>
@@ -418,7 +418,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_bookings_user_id");
 
-                    b.ToTable("bookings");
+                    b.ToTable("bookings", (string)null);
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.Device", b =>
@@ -465,7 +465,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("SpaceId")
                         .HasDatabaseName("ix_devices_space_id");
 
-                    b.ToTable("devices");
+                    b.ToTable("devices", (string)null);
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.Payment", b =>
@@ -523,7 +523,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("SubscriptionId")
                         .HasDatabaseName("ix_payments_subscription_id");
 
-                    b.ToTable("payments");
+                    b.ToTable("payments", (string)null);
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.Space", b =>
@@ -596,7 +596,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("OwnerId")
                         .HasDatabaseName("ix_spaces_owner_id");
 
-                    b.ToTable("spaces");
+                    b.ToTable("spaces", (string)null);
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.Subscription", b =>
@@ -659,7 +659,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_subscriptions_user_id");
 
-                    b.ToTable("subscriptions");
+                    b.ToTable("subscriptions", (string)null);
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.SubscriptionPlan", b =>
@@ -713,7 +713,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_subscription_plans");
 
-                    b.ToTable("subscription_plans");
+                    b.ToTable("subscription_plans", (string)null);
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.User", b =>
@@ -895,7 +895,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_user_refresh_tokens_user_id");
 
-                    b.ToTable("user_refresh_tokens");
+                    b.ToTable("user_refresh_tokens", (string)null);
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.WorkingHours", b =>
@@ -935,7 +935,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("SpaceId", "DayOfWeek")
                         .IsUnique();
 
-                    b.ToTable("working_hours");
+                    b.ToTable("working_hours", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>

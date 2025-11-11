@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using SpotRent.Api.Dto;
+using SpotRent.Api.Dtos;
 using SpotRent.Services.Interfaces;
 using SpotRent.Services.Payment;
 using LiqPayResponse = SpotRent.Services.Payment.LiqPayResponse;

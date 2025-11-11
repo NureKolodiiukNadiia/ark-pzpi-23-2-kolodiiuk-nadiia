@@ -1,10 +1,12 @@
-﻿using System.Security.Claims;
+﻿using System.Reflection;
+using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using SpotRent.Api.Dto;
+using SpotRent.Api;
+using SpotRent.Api.Dtos;
 using SpotRent.Domain.Entities;
 using SpotRent.Infrastructure;
 using SpotRent.Services;

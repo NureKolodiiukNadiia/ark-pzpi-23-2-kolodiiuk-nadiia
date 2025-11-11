@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using SpotRent.Domain.Enums;
 
 namespace SpotRent.Domain.Entities;
@@ -9,7 +8,6 @@ public class Device
 
     public int SpaceId { get; set; }
 
-    [StringLength(100)]
     public string DeviceName { get; set; }
 
     public LockStatus? Status { get; set; }
