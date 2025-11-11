@@ -35,10 +35,32 @@ public class SubscriptionController : ControllerBase
     }
 
     // POST /api/subscription
+    [Authorize(Roles = "User")]
     [HttpPost]
     public async Task<ActionResult> CreateSubscriptionAsync([FromBody] CreateSubscriptionDto subscriptionDto)
     {
-        throw new NotImplementedException();
+        var result = await _subscriptionService.SubscribeAsync(request.UserId, request.PlanId);
+        if (result.Failure)
+        {
+            return BadRequest(result.Error);
+        }
+
+        return StatusCode(StatusCodes.Status201Created, new { id = result.Value });
+    }
+
+
+    [Authorize(Roles = "User")]
+    [HttpGet("me/{userId:int}")]
+    public async Task<ActionResult> GetMySubscriptionAsync(int userId)
+    {
+        var result = await _subscriptionService.GetCurrentUserSubscriptionAsync(userId);
+
+        if (result.Failure)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, result.Error);
+        }
+
+        return Ok(result.Value);
     }
 
     // PUT /api/subscription/{id}
@@ -48,18 +70,28 @@ public class SubscriptionController : ControllerBase
         throw new NotImplementedException();
     }
 
-    // DELETE /api/subscription/{id}
-    [HttpDelete("{id:int}")]
-    public async Task<ActionResult> DeleteSubscriptionAsync(int id)
+    [HttpGet("plans")]
+    public async Task<IActionResult> GetPlansAsync()
     {
-        throw new NotImplementedException();
+        var result = await _subscriptionService.GetPlansAsync();
+        if (result.Failure)
+        {
+            return BadRequest(result.Error);
+        }
+
+        return Ok(new { data = result.Value });
     }
 
-    // POST /api/subscription/user/{userId}
-    [HttpPost("user/{userId:int}")]
-    public async Task<ActionResult> SubscribeUserAsync(int userId, [FromBody] SubscribeUserRequest? request = null)
+    [HttpGet("plans/{id:int}")]
+    public async Task<IActionResult> GetPlanAsync(int id)
     {
-        throw new NotImplementedException();
+        var result = await _subscriptionService.GetPlanByIdAsync(id);
+        if (result.Failure)
+        {
+            return BadRequest(result.Error);
+        }
+
+        return Ok(result.Value);
     }
 
     // GET /api/subscription/user/{userId}
@@ -67,6 +99,34 @@ public class SubscriptionController : ControllerBase
     public async Task<ActionResult<IEnumerable<Subscription>>> GetUserSubscriptionsAsync(int userId)
     {
         throw new NotImplementedException();
+    }
+
+    [Authorize(Roles = "User")]
+    [HttpPost("{id:int}/change")]
+    public async Task<ActionResult> ChangeSubscriptionAsync(ChangePlanRequest request)
+    {
+        //todo: check user
+        var result = await _subscriptionService.ChangeSubscriptionAsync(request.SubscriptionId, request.NewPlanId);
+        if (result.Failure)
+        {
+            return BadRequest(result.Error);
+        }
+
+        return Ok(result.Value);
+    }
+
+    [Authorize(Roles = "User")]
+    [HttpPost("{userId:int}/{subscriptionId:int}/cancel")]
+    public async Task<ActionResult> CancelSubscriptionAsync(int userId, int subscriptionId)
+    {
+        //todo:check user
+        var result = await _subscriptionService.CancelSubscriptionAsync(subscriptionId);
+        if (result.Failure)
+        {
+            return BadRequest(result.Error);
+        }
+
+        return Ok();
     }
 }
 

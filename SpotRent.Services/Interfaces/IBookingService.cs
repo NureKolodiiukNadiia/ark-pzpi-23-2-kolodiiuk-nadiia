@@ -1,35 +1,27 @@
+using SpotRent.Domain.Common;
 using SpotRent.Domain.Entities;
 
 namespace SpotRent.Services.Interfaces;
 
 public interface IBookingService
 {
-    Task<IEnumerable<Booking>> GetUserBookingsAsync(int userId);
+    Task<Result<Booking>> CreateBookingAsync(Booking booking);
+    
+    Task<Result<IEnumerable<Booking>>> GetUserBookingsHistoryAsync(int userId);
 
-    Task<IEnumerable<Booking>> GetAllBookingsAsync();
+    Task<Result<IEnumerable<Booking>>> GetUserActiveBookingsAsync(int userId);
 
-    Task<Booking> GetBookingByIdAsync(int id);
+    Task<Result<IEnumerable<Booking>>> GetOwnerBookingsAsync(int ownerId);
 
-    Task<Booking> CreateBookingAsync(Booking booking);
+    Task<Result<IEnumerable<Booking>>> GetBookingsAsync(BookingFilterRequest filterRequest);
 
-    Task<Booking> UpdateBookingAsync(Booking booking);
+    Task<Result<Booking>> GetBookingByIdAsync(int id);
 
-    Task<bool> CancelBookingAsync(int id);
+    Task<Result<Booking>> UpdateBookingAsync(Booking booking);
 
-    Task<decimal> CalculateBookingCostAsync(int workspaceId, DateTime startTime, DateTime endTime);
-    Task<bool> IsBookingActiveAsync(int bookingId);
-    Task<Booking> GetActiveBookingAsync(int userId, int workspaceId);
+    Task<Result> CancelBookingAsync(int id);
+}
 
-    Task<IEnumerable<Booking>> GetBookingsByDateRangeAsync(DateTime startDate, DateTime endDate);
-    //Task<Order> PlaceOrderAsync(CreateOrderDto order);
-
-    //Task<IEnumerable<Order>> GetAllOrdersAsync();
-
-    //Task<IEnumerable<Order>> GetUserOrdersAsync(int userId);
-
-    //Task<Order> GetOrderAsync(int orderId);
-
-    //Task UpdateOrderAsync(Order order);
-
-    //Task<IEnumerable<OrderItem>> GetOrderItemsAsync(int orderId);
+public class BookingFilterRequest
+{
 }
