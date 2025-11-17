@@ -16,5 +16,6 @@ public static class ContainerConfigExtensions
         services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<ISpaceService, SpaceService>();
+        services.AddScoped<LiqPayHelper, LiqPayHelper>();
     }
 }
