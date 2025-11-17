@@ -39,6 +39,11 @@ public class BookingService : IBookingService
         throw new NotImplementedException();
     }
 
+    public Task<Result<IEnumerable<Booking>>> GetBookingsAsync(BookingFilterRequest filterRequest)
+    {
+        throw new NotImplementedException();
+    }
+
     public async Task<Result<Booking>> GetBookingByIdAsync(int id)
     {
         var booking = await _context.Bookings.FindAsync(id);

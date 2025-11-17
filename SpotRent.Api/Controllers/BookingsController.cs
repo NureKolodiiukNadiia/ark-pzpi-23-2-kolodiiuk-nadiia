@@ -28,89 +28,93 @@ public class BookingsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateBooking([FromBody] CreateBookingRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
-        var booking = _mapper.Map<CreateBookingRequest, Booking>(request);
-        var bookingCreationResult = await _bookingService.CreateBookingAsync(booking);
-        if (bookingCreationResult.Failure)
-        {
-            return BadRequest(bookingCreationResult.Error);
-        }
-
-        var response = _mapper.Map<Booking, BookingCreateResponse>(bookingCreationResult.Value);
-
-        // Return Created with location header to GET /bookings/{id}
-        return CreatedAtAction(nameof(GetBooking), new { id = bookingCreationResult.Value.Id }, response);
+        return StatusCode(418);
+        // if (!ModelState.IsValid)
+        //     return BadRequest(ModelState);
+        //
+        // var booking = _mapper.Map<CreateBookingRequest, Booking>(request);
+        // var bookingCreationResult = await _bookingService.CreateBookingAsync(booking);
+        // if (bookingCreationResult.Failure)
+        // {
+        //     return BadRequest(bookingCreationResult.Error);
+        // }
+        //
+        // var response = _mapper.Map<Booking, BookingCreateResponse>(bookingCreationResult.Value);
+        //
+        // // Return Created with location header to GET /bookings/{id}
+        // return CreatedAtAction(nameof(GetBooking), new { id = bookingCreationResult.Value.Id }, response);
     }
 
     [HttpGet("users/{userId}/history")]
     [Authorize(Roles = "User")]
     public async Task<IActionResult> GetUserBookingsHistory(int userId)
     {
-        var result = await _bookingService.GetUserBookingsHistoryAsync(userId);
-        if (result.Failure)
-            return BadRequest(result.Error);
-    
-        var items = _mapper.Map<List<BookingListItem>>(result.Value);
-        var dto = new BookingListResponse
-        {
-            Data = items,
-            Pagination = new PaginationDto
-            {
-                Page = 1,
-                PageSize = items.Count,
-                Total = items.Count
-            }
-        };
-    
-        return Ok(dto);
+        return StatusCode(418);
+        // var result = await _bookingService.GetUserBookingsHistoryAsync(userId);
+        // if (result.Failure)
+        //     return BadRequest(result.Error);
+        //
+        // var items = _mapper.Map<List<BookingListItem>>(result.Value);
+        // var dto = new BookingListResponse
+        // {
+        //     Data = items,
+        //     Pagination = new PaginationDto
+        //     {
+        //         Page = 1,
+        //         PageSize = items.Count,
+        //         Total = items.Count
+        //     }
+        // };
+        //
+        // return Ok(dto);
     }
     
     [HttpGet("users/{userId}/active")]
     [Authorize(Roles = "User")]
     public async Task<IActionResult> GetUserActiveBookings(int userId)
     {
-        var result = await _bookingService.GetUserActiveBookingsAsync(userId);
-        if (result.Failure)
-            return BadRequest(result.Error);
-    
-        var items = _mapper.Map<List<BookingListItem>>(result.Value);
-        var dto = new BookingListResponse
-        {
-            Data = items,
-            Pagination = new PaginationDto
-            {
-                Page = 1,
-                PageSize = items.Count,
-                Total = items.Count
-            }
-        };
-    
-        return Ok(dto);
+        return StatusCode(418);
+        // var result = await _bookingService.GetUserActiveBookingsAsync(userId);
+        // if (result.Failure)
+        //     return BadRequest(result.Error);
+        //
+        // var items = _mapper.Map<List<BookingListItem>>(result.Value);
+        // var dto = new BookingListResponse
+        // {
+        //     Data = items,
+        //     Pagination = new PaginationDto
+        //     {
+        //         Page = 1,
+        //         PageSize = items.Count,
+        //         Total = items.Count
+        //     }
+        // };
+        //
+        // return Ok(dto);
     }
     
     [HttpGet("owners/{ownerId}")]
     [Authorize(Roles = "Owner")]
     public async Task<IActionResult> GetOwnerBookings(int ownerId)
     {
-        var result = await _bookingService.GetOwnerBookingsAsync(ownerId);
-        if (result.Failure)
-            return BadRequest(result.Error);
-    
-        var items = _mapper.Map<List<BookingListItem>>(result.Value);
-        var dto = new BookingListResponse
-        {
-            Data = items,
-            Pagination = new PaginationDto
-            {
-                Page = 1,
-                PageSize = items.Count,
-                Total = items.Count
-            }
-        };
-    
-        return Ok(dto);
+        return StatusCode(418);
+        // var result = await _bookingService.GetOwnerBookingsAsync(ownerId);
+        // if (result.Failure)
+        //     return BadRequest(result.Error);
+        //
+        // var items = _mapper.Map<List<BookingListItem>>(result.Value);
+        // var dto = new BookingListResponse
+        // {
+        //     Data = items,
+        //     Pagination = new PaginationDto
+        //     {
+        //         Page = 1,
+        //         PageSize = items.Count,
+        //         Total = items.Count
+        //     }
+        // };
+        //
+        // return Ok(dto);
     }
     
     [HttpGet]
@@ -122,71 +126,79 @@ public class BookingsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        // Map query into service call - assumes service supports filtering/pagination.
-        // If your IBookingService has a different signature adjust accordingly.
-        var listResult = await _bookingService.GetBookingsAsync(status, upcoming, past, page, pageSize);
-        if (listResult.Failure)
-        {
-            return BadRequest(listResult.Error);
-        }
-
-        var dto = new BookingListResponse
-        {
-            Data = _mapper.Map<List<Booking>, List<BookingListItem>>(listResult.Value.Items),
-            Pagination = new PaginationDto
-            {
-                Page = listResult.Value.Page,
-                PageSize = listResult.Value.PageSize,
-                Total = listResult.Value.Total
-            }
-        };
-
-        return Ok(dto);
+        return StatusCode(418);
+        // // Map query into service call - assumes service supports filtering/pagination.
+        // // If your IBookingService has a different signature adjust accordingly.
+        // var listResult = await _bookingService.GetBookingsAsync(status, upcoming, past, page, pageSize);
+        // if (listResult.Failure)
+        // {
+        //     return BadRequest(listResult.Error);
+        // }
+        //
+        // var dto = new BookingListResponse
+        // {
+        //     Data = _mapper.Map<List<Booking>, List<BookingListItem>>(listResult.Value.Items),
+        //     Pagination = new PaginationDto
+        //     {
+        //         Page = listResult.Value.Page,
+        //         PageSize = listResult.Value.PageSize,
+        //         Total = listResult.Value.Total
+        //     }
+        // };
+        //
+        // return Ok(dto);
     }
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetBooking(int id)
     {
-        var bookingResult = await _bookingService.GetBookingByIdAsync(id);
-        if (bookingResult.Failure)
-        {
-            return BadRequest(bookingResult.Error);
-        }
-
-        var dto = _mapper.Map<Booking, BookingDetailsResponse>(bookingResult.Value);
-        return Ok(dto);
+        return StatusCode(418);
+        // var bookingResult = await _bookingService.GetBookingByIdAsync(id);
+        // if (bookingResult.Failure)
+        // {
+        //     return BadRequest(bookingResult.Error);
+        // }
+        //
+        // var dto = _mapper.Map<Booking, BookingDetailsResponse>(bookingResult.Value);
+        // return Ok(dto);
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateBooking(int id, [FromBody] UpdateBookingRequest request)
     {
-        var booking = _mapper.Map<UpdateBookingRequest, Booking>(request);
-        booking.Id = id;
-        var updateBookingResult = await _bookingService.UpdateBookingAsync(booking);
-        if (updateBookingResult.Failure)
-        {
-            return BadRequest(updateBookingResult.Error);
-        }
-
-        return Ok(_mapper.Map<Booking, BookingDetailsResponse>(updateBookingResult.Value));
+        return StatusCode(418);
+        // var booking = _mapper.Map<UpdateBookingRequest, Booking>(request);
+        // booking.Id = id;
+        // var updateBookingResult = await _bookingService.UpdateBookingAsync(booking);
+        // if (updateBookingResult.Failure)
+        // {
+        //     return BadRequest(updateBookingResult.Error);
+        // }
+        //
+        // return Ok(_mapper.Map<Booking, BookingDetailsResponse>(updateBookingResult.Value));
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> CancelBooking(int id, [FromBody] CancelBookingRequest request)
     {
-        if (request == null || string.IsNullOrWhiteSpace(request.Reason))
-            return BadRequest("Cancellation reason is required.");
-
-        // Try to cancel via service (assumes Cancel/Refund support)
-        var cancelResult = await _bookingService.CancelBookingAsync(id);
-        if (cancelResult.Failure)
-        {
-            return BadRequest(cancelResult.Error);
-        }
-
-        var response = _mapper.Map<CancelBookingResponse>(cancelResult.Value);
-        return Ok(response);
+        return StatusCode(418);
+        // if (request == null || string.IsNullOrWhiteSpace(request.Reason))
+        //     return BadRequest("Cancellation reason is required.");
+        //
+        // // Try to cancel via service (assumes Cancel/Refund support)
+        // var cancelResult = await _bookingService.CancelBookingAsync(id);
+        // if (cancelResult.Failure)
+        // {
+        //     return BadRequest(cancelResult.Error);
+        // }
+        //
+        // var response = _mapper.Map<CancelBookingResponse>(cancelResult.Value);
+        // return Ok(response);
     }
+}
+
+public class UpdateBookingRequest
+{
 }
 
 #region DTOs
