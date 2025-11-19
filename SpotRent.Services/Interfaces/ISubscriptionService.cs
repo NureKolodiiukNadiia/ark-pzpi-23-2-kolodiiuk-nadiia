@@ -12,10 +12,6 @@ public interface ISubscriptionService
 
     Task<Result<SubscriptionHistory>> GetSubscriptionHistoryAsync(int userId, int page, int pageSize);
 
-    Task<Result<IEnumerable<SubscriptionPlan>>> GetPlansAsync();
-
-    Task<Result<SubscriptionPlan>> GetPlanByIdAsync(int id);
-
     Task<Result<Subscription>> GetSubscriptionByIdAsync(int id);
 
     Task<Result<Subscription>> ChangeSubscriptionAsync(int currSubscriptionId, int newPlanId);

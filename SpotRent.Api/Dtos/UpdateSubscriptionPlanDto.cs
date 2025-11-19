@@ -1,6 +1,6 @@
 namespace SpotRent.Api.Dtos;
 
-public class UpdateSubscriptionDto
+public class UpdateSubscriptionPlanDto
 {
     public int Id { get; set; }
     
