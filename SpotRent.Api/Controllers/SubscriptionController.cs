@@ -3,16 +3,18 @@ using Microsoft.AspNetCore.Mvc;
 using SpotRent.Api.Dtos;
 using SpotRent.Domain.Entities;
 using SpotRent.Services.Interfaces;
+using SpotRent.Services.Subscriptions;
 
 namespace SpotRent.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SubscriptionController : ControllerBase
+public class SubscriptionController : BaseController<SubscriptionController>
 {
     private readonly ISubscriptionService _subscriptionService;
 
-    public SubscriptionController(ISubscriptionService subscriptionService)
+    public SubscriptionController(ISubscriptionService subscriptionService, ILogger<SubscriptionController> logger)
+        : base(logger)
     {
         _subscriptionService = subscriptionService;
     }

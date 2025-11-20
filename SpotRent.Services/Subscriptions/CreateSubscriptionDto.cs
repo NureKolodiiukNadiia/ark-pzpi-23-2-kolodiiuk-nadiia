@@ -1,4 +1,4 @@
-namespace SpotRent.Api.Dtos;
+namespace SpotRent.Services.Subscriptions;
 
 public class CreateSubscriptionDto
 {
