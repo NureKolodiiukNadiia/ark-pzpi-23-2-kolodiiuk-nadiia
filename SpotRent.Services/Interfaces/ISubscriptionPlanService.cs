@@ -12,7 +12,7 @@ public interface ISubscriptionPlanService
 
     Task<Result> CreateSubscriptionPlanAsync(CreateSubscriptionPlanDto subscriptionPlanDto);
 
-    Task<Result> UpdateSubscriptionPlanAsync(UpdateSubscriptionPlanDto subscriptionPlanDto);
+    Task<Result> UpdateSubscriptionPlanAsync(int id, UpdateSubscriptionPlanDto subscriptionPlanDto);
 
     Task<Result> DeactivateSubscriptionPlanAsync(int subscriptionPlanId);
 

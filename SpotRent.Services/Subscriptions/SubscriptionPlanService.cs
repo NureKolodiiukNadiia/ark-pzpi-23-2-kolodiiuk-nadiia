@@ -110,14 +110,14 @@ public class SubscriptionPlanService : BaseService<SubscriptionPlanService>, ISu
         }
     }
 
-    public async Task<Result> UpdateSubscriptionPlanAsync(UpdateSubscriptionPlanDto subscriptionPlanDto)
+    public async Task<Result> UpdateSubscriptionPlanAsync(int id, UpdateSubscriptionPlanDto subscriptionPlanDto)
     {
         try
         {
-            var plan = await Context.SubscriptionPlans.FindAsync(subscriptionPlanDto.Id);
+            var plan = await Context.SubscriptionPlans.FindAsync(id);
             if (plan is null)
             {
-                return Result.Fail($"No subscription plan with id: {subscriptionPlanDto.Id}");
+                return Result.Fail($"No subscription plan with id: {id}");
             }
 
             plan.UpdatedAt = DateTime.UtcNow;
@@ -186,7 +186,7 @@ public class SubscriptionPlanService : BaseService<SubscriptionPlanService>, ISu
 
             if (plan.IsActive || plan.Subscriptions.Count != 0)
             {
-                return Result.Fail($"There are active subscriptions on subscription {subscriptionPlanId}.");
+                return Result.Fail($"There are active subscriptions on subscription or plan {subscriptionPlanId} is active.");
             }
 
             Context.Remove(plan);
