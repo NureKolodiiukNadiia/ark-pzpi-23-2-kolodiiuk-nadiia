@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace SpotRent.Api.Dtos;
+namespace SpotRent.Api.Dtos.Auth;
 
 public class RegisterRequest
 {
