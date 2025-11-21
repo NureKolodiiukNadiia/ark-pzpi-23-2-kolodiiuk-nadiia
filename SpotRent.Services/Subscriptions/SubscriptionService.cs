@@ -7,6 +7,7 @@ using SpotRent.Domain.Entities;
 using SpotRent.Domain.Enums;
 using SpotRent.Infrastructure;
 using SpotRent.Services.Interfaces;
+using SpotRent.Services.Logging;
 using SpotRent.Services.Payment;
 
 namespace SpotRent.Services.Subscriptions;
@@ -28,6 +29,7 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
     {
         using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
 
+        SubscriptionPlan subscriptionPlan;
         try
         {
             var user = await Context.Users.FindAsync(userId);
@@ -36,25 +38,24 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
                 return Result.Fail<LiqPayPaymentData>($"No user {userId} specified in order request");
             }
 
-            var subscriptionPlan = await Context.SubscriptionPlans.FindAsync(subscriptionPlanId);
+            var existingSubscription = await Context.Subscriptions.FirstOrDefaultAsync(s => s.UserId == userId);
+            if (existingSubscription is not null)
+            {
+                return Result.Fail<LiqPayPaymentData>(
+                    $"User {userId} is already subscribed. Update subscription instead");
+            }
+
+            subscriptionPlan = await Context.SubscriptionPlans.FindAsync(subscriptionPlanId);
             if (subscriptionPlan is null || !subscriptionPlan.IsActive)
             {
                 return Result.Fail<LiqPayPaymentData>($"Subscription plan with id {subscriptionPlanId} not available");
             }
 
-            var subscription = new Subscription
+            var subscription = await CreateSubscription();
+            if (subscription is null)
             {
-                Status = SubscriptionStatus.Active,
-                TotalAmount = subscriptionPlan.Price,
-                PaymentStatus = PaymentStatus.NotPaid,
-
-                UserId = userId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-            };
-
-            await Context.AddAsync(subscription);
-            await Context.SaveChangesAsync();
+                return Result.Fail<LiqPayPaymentData>("Invalid duration");
+            }
 
             var paymentDataResult = await _paymentService.CreatePayment(subscription.Id, subscription.TotalAmount);
             if (paymentDataResult.Failure)
@@ -68,11 +69,52 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
         }
         catch (NpgsqlException e)
         {
+            Log(LogLevel.Error, SubscriptionServiceEventIds.Subscribe,
+                "DB error subscribing user {userId} to plan {planId}. Error: {error}",
+                userId, subscriptionPlanId, e.Message);
+
             return Result.Fail<LiqPayPaymentData>($"DB error: {e.Message}.");
         }
         catch (Exception e)
         {
+            Log(LogLevel.Error, SubscriptionServiceEventIds.Subscribe,
+                "Error subscribing user {userId} to plan {planId}. Error: {error}",
+                userId, subscriptionPlanId, e.Message);
+
             return Result.Fail<LiqPayPaymentData>($"Failure placing order: {e.Message}");
+        }
+
+        async Task<Subscription> CreateSubscription()
+        {
+            var now = DateTime.UtcNow;
+            var start = now;
+            var end = CalcEndDate(start, subscriptionPlan.Duration);
+            if (end is null)
+            {
+                return null;
+            }
+
+            var subscription = new Subscription
+            {
+                UserId = userId,
+                SubscriptionPlanId = subscriptionPlan.Id,
+                Price = subscriptionPlan.Price,
+                StartDate = start,
+                EndDate = end.Value,
+                Status = SubscriptionStatus.NotPaid,
+                HoursUsed = 0,
+                TotalAmount = subscriptionPlan.Price,
+                PaymentStatus = PaymentStatus.NotPaid,
+                TransactionId = 0, //todo: make nullable
+                CreatedAt = now,
+                UpdatedAt = now,
+                CancelledAt = null
+            };
+
+            await Context.AddAsync(subscription);
+            await Context.SaveChangesAsync();
+
+            return subscription;
         }
     }
 
@@ -114,40 +156,58 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
         }
         catch (NpgsqlException e)
         {
+            Log(LogLevel.Error, SubscriptionServiceEventIds.GetCurrentUserSubscription,
+                "DB error retrieving current subscription for user {userId}. Error: {error}",
+                userId, e.Message);
+
             return Result.Fail<SubscriptionDto>($"DB error: {e.Message}.");
         }
         catch (Exception e)
         {
+            Log(LogLevel.Error, SubscriptionServiceEventIds.GetCurrentUserSubscription,
+                "Error retrieving current subscription for user {userId}. Error: {error}",
+                userId, e.Message);
+
             return Result.Fail<SubscriptionDto>($"Failure retrieving user subscription: {e.Message}.");
         }
     }
 
-    public async Task<Result<SubscriptionHistory>> GetSubscriptionHistoryAsync(int userId, int page, int pageSize)
+    public async Task<Result<IEnumerable<SubscriptionInfo>>> GetSubscriptionHistoryAsync(int userId)
     {
         try
         {
-            // var subscriptions = await Context.Subscriptions
-            //     .Where(s => s.UserId == userId);
-            // var history = new SubscriptionHistory
-            //     {
-            //         Id = sp.Id,
-            //         Name = sp.Name,
-            //         Description = sp.Description,
-            //         Price = sp.Price,
-            //         Duration = sp.Duration,
-            //         IncludedHours = sp.IncludedHours,
-            //     });
+            var history = await Context.Subscriptions
+                .Include(s => s.SubscriptionPlan)
+                .Where(s => s.UserId == userId)
+                .Select(s => new SubscriptionInfo
+                {
+                    Id = s.Id,
+                    SubscriptionPlanId = s.SubscriptionPlanId,
+                    SubscriptionPlanName = s.SubscriptionPlan.Name,
+                    SubscriptionStatus = s.Status,
+                    IsActive = s.IsActive(),
+                    StartedAt = s.StartDate,
+                    ExpiresAt = s.EndDate,
+                })
+                .ToListAsync();
 
-            // return Result.Success(history);
-            throw new NotImplementedException();
+            return Result.Success<IEnumerable<SubscriptionInfo>>(history);
         }
         catch (NpgsqlException e)
         {
-            return Result.Fail<SubscriptionHistory>($"DB error: {e.Message}.");
+            Log(LogLevel.Error, SubscriptionServiceEventIds.GetSubscriptionHistory,
+                "DB error retrieving subscription history for user {userId}. Error: {error}",
+                userId, e.Message);
+
+            return Result.Fail<IEnumerable<SubscriptionInfo>>($"DB error: {e.Message}.");
         }
         catch (Exception e)
         {
-            return Result.Fail<SubscriptionHistory>(
+            Log(LogLevel.Error, SubscriptionServiceEventIds.GetSubscriptionHistory,
+                "Error retrieving subscription history for user {userId}. Error: {error}",
+                userId, e.Message);
+
+            return Result.Fail<IEnumerable<SubscriptionInfo>>(
                 $"Failure retrieving subscription plans: {e.Message}.");
         }
     }
@@ -164,63 +224,54 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
         }
         catch (NpgsqlException e)
         {
+            Log(LogLevel.Error, SubscriptionServiceEventIds.GetSubscriptionById,
+                "DB error retrieving subscription with id {id}. Error: {error}",
+                id, e.Message);
+
             return Result.Fail<Subscription>($"DB error: {e.Message}.");
         }
         catch (Exception e)
         {
+            Log(LogLevel.Error, SubscriptionServiceEventIds.GetSubscriptionById,
+                "Error retrieving subscription with id {id}. Error: {error}",
+                id, e.Message);
+
             return Result.Fail<Subscription>($"Failure retrieving subscription with id {id}: {e.Message}.");
         }
     }
 
-    public async Task<Result<Subscription>> ChangeSubscriptionAsync(int currSubscriptionId, int newPlanId)
+    public async Task<Result> ChangeSubscriptionAsync(int currSubscriptionId, int newPlanId)
     {
-        throw new NotImplementedException();
-        // try
-        // {
-        //     var user = await Context.Users.FindAsync(userId);
-        //     if (user == null)
-        //     {
-        //         return Result.Fail<LiqPayPaymentData>($"No user {userId} specified in order request");
-        //     }
-        //
-        //     var subscriptionPlan = await Context.SubscriptionPlans.FindAsync(subscriptionPlanId);
-        //     if (subscriptionPlan is null || !subscriptionPlan.IsActive)
-        //     {
-        //         return Result.Fail<LiqPayPaymentData>($"Subscription plan with id {subscriptionPlanId} not available");
-        //     }
-        //
-        //     var subscription = new Subscription
-        //     {
-        //         Status = SubscriptionStatus.NotPaid,
-        //         TotalAmount = subscriptionPlan.Price,
-        //         PaymentStatus = PaymentStatus.NotPaid,
-        //
-        //         UserId = userId,
-        //         CreatedAt = DateTime.UtcNow,
-        //         UpdatedAt = DateTime.UtcNow,
-        //     };
-        //
-        //     await Context.AddAsync(subscription);
-        //     await Context.SaveChangesAsync();
-        //
-        //     var paymentDataResult = await _paymentService.CreatePayment(subscription.Id, subscription.TotalAmount);
-        //     if (paymentDataResult.Failure)
-        //     {
-        //         return Result.Fail<LiqPayPaymentData>($"{paymentDataResult.Error}");
-        //     }
-        //
-        //     scope.Complete();
-        //
-        //     return Result.Success(paymentDataResult.Value);
-        // }
-        // catch (NpgsqlException e)
-        // {
-        //     return Result.Fail<LiqPayPaymentData>($"DB error: {e.Message}.");
-        // }
-        // catch (Exception e)
-        // {
-        //     return Result.Fail<LiqPayPaymentData>($"Failure placing order: {e.Message}");
-        // }
+        try
+        {
+            var subscription = await Context.Subscriptions.FindAsync(currSubscriptionId);
+            if (subscription is null)
+            {
+                return Result.Fail($"No subscription with id {currSubscriptionId}");
+            }
+
+            subscription.SubscriptionPlanId = newPlanId;
+            Context.Update(subscription);
+            await Context.SaveChangesAsync();
+
+            return Result.Success();
+        }
+        catch (NpgsqlException e)
+        {
+            Log(LogLevel.Error, SubscriptionServiceEventIds.ChangeSubscription,
+                "DB error changing subscription {subscriptionId} to plan {newPlanId}. Error: {error}",
+                currSubscriptionId, newPlanId, e.Message);
+
+            return Result.Fail($"DB error: {e.Message}.");
+        }
+        catch (Exception e)
+        {
+            Log(LogLevel.Error, SubscriptionServiceEventIds.ChangeSubscription,
+                "Error changing subscription {subscriptionId} to plan {newPlanId}. Error: {error}",
+                currSubscriptionId, newPlanId, e.Message);
+
+            return Result.Fail($"Failure changing subscription plan: {e.Message}");
+        }
     }
 
     public async Task<Result> CancelSubscriptionAsync(int subscriptionId)
@@ -243,5 +294,29 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
         }
 
         return Result.Success();
+    }
+
+    private DateTime? CalcEndDate(DateTime startDate, Duration duration)
+    {
+        double durationInDays;
+        switch (duration)
+        {
+            case Duration.Week:
+                durationInDays = 7;
+                break;
+            case Duration.TwoWeeks:
+                durationInDays = 14;
+                break;
+            case Duration.Month:
+                durationInDays = 30;
+                break;
+            case Duration.ThreeMonths:
+                durationInDays = 90;
+                break;
+            default:
+                return null;
+        }
+
+        return startDate.AddDays(durationInDays);
     }
 }

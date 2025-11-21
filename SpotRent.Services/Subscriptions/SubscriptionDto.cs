@@ -1,3 +1,4 @@
+using SpotRent.Domain.Entities;
 using SpotRent.Domain.Enums;
 
 namespace SpotRent.Services.Subscriptions;
@@ -29,4 +30,24 @@ public class SubscriptionDto
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
+
+    public static SubscriptionDto MapSubscription(Subscription subscription)
+    {
+        return new SubscriptionDto
+        {
+            Id = subscription.Id,
+            Price = subscription.Price,
+            SubscriptionPlanId = subscription.SubscriptionPlanId,
+            StartDate = subscription.StartDate,
+            Status = subscription.Status,
+            EndDate = subscription.EndDate,
+            HoursUsed = subscription.HoursUsed,
+            TotalAmount = subscription.TotalAmount,
+            PaymentStatus = subscription.PaymentStatus,
+            PaymentProcessedAt = subscription.PaymentProcessedAt,
+            PaymentFailureReason = subscription.PaymentFailureReason,
+            CreatedAt = subscription.CreatedAt,
+            UpdatedAt = subscription.UpdatedAt
+        };
+    }
 }

@@ -16,7 +16,7 @@ public abstract class BaseService<TService>
         Logger = logger;
     }
 
-    protected void LogMessage(
+    protected void Log(
         LogLevel logLevel,
         EventId eventId,
         [StringSyntax("StructuredLogMessageTemplate")]
@@ -26,38 +26,68 @@ public abstract class BaseService<TService>
         action.Invoke(Logger, null);
     }
 
-    protected void LogId(
+    protected void Log<T1>(
         LogLevel logLevel,
         EventId eventId,
-        int id,
         [StringSyntax("StructuredLogMessageTemplate")]
-        string message)
+        string message,
+        T1 param1)
     {
-        var action = LoggerMessage.Define<int>(logLevel, eventId, message);
-        action.Invoke(Logger, id, null);
+        var action = LoggerMessage.Define<T1>(logLevel, eventId, message);
+        action.Invoke(Logger, param1, null);
     }
 
-    protected void LogIdWithCount(
+    protected void Log<T1, T2>(
         LogLevel logLevel,
         EventId eventId,
-        int id,
-        int count,
         [StringSyntax("StructuredLogMessageTemplate")]
-        string message)
+        string message,
+        T1 param1,
+        T2 param2)
     {
-        var action = LoggerMessage.Define<int, int>(logLevel, eventId, message);
-        action.Invoke(Logger, id, count, null);
+        var action = LoggerMessage.Define<T1, T2>(logLevel, eventId, message);
+        action.Invoke(Logger, param1, param2, null);
     }
 
-    protected void LogIdWithMessage(
+    protected void Log<T1, T2, T3>(
         LogLevel logLevel,
         EventId eventId,
-        int id,
-        string loggedMessage,
         [StringSyntax("StructuredLogMessageTemplate")]
-        string message)
+        string message,
+        T1 param1,
+        T2 param2,
+        T3 param3)
     {
-        var action = LoggerMessage.Define<int, string>(logLevel, eventId, message);
-        action.Invoke(Logger, id, loggedMessage, null);
+        var action = LoggerMessage.Define<T1, T2, T3>(logLevel, eventId, message);
+        action.Invoke(Logger, param1, param2, param3, null);
+    }
+
+    protected void Log<T1, T2, T3, T4>(
+        LogLevel logLevel,
+        EventId eventId,
+        [StringSyntax("StructuredLogMessageTemplate")]
+        string message,
+        T1 param1,
+        T2 param2,
+        T3 param3,
+        T4 param4)
+    {
+        var action = LoggerMessage.Define<T1, T2, T3, T4>(logLevel, eventId, message);
+        action.Invoke(Logger, param1, param2, param3, param4, null);
+    }
+
+    protected void Log<T1, T2, T3, T4 ,T5>(
+        LogLevel logLevel,
+        EventId eventId,
+        [StringSyntax("StructuredLogMessageTemplate")]
+        string message,
+        T1 param1,
+        T2 param2,
+        T3 param3,
+        T4 param4,
+        T5 param5)
+    {
+        var action = LoggerMessage.Define<T1, T2, T3, T4, T5>(logLevel, eventId, message);
+        action.Invoke(Logger, param1, param2, param3, param4, param5, null);
     }
 }

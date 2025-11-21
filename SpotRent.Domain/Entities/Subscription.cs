@@ -41,4 +41,17 @@ public class Subscription
     public User User { get; set; }
 
     public SubscriptionPlan SubscriptionPlan { get; set; }
+
+    public bool IsActive()
+    {
+        var ended = DateTime.UtcNow >= EndDate;
+        var cancelled = CancelledAt != null;
+        var isPaid = PaymentProcessedAt != null
+                     || PaymentStatus == PaymentStatus.Paid
+                     || PaymentStatus == PaymentStatus.TestPaid;
+        var includedHours = SubscriptionPlan?.IncludedHours ?? int.MaxValue;
+        var hoursUsedUp = HoursUsed >= includedHours;
+
+        return !ended && !cancelled && isPaid && !hoursUsedUp;
+    }
 }
