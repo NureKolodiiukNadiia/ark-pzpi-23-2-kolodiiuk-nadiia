@@ -1,11 +1,7 @@
-using SpotRent.Domain.Enums;
-
 namespace SpotRent.Services.Subscriptions;
 
 public class UpdateSubscriptionPlanDto
 {
-    public int Id { get; set; }
-    
     public string Name { get; set; }
     
     public string Description { get; set; }

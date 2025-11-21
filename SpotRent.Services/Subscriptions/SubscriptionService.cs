@@ -44,7 +44,7 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
 
             var subscription = new Subscription
             {
-                Status = SubscriptionStatus.NotPaid,
+                Status = SubscriptionStatus.Active,
                 TotalAmount = subscriptionPlan.Price,
                 PaymentStatus = PaymentStatus.NotPaid,
 
@@ -126,28 +126,28 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
     {
         try
         {
-            var plans = await Context.SubscriptionPlans
-                .Where(sp => sp.IsActive == true)
-                .Select(sp => new SubscriptionPlanDto
-                {
-                    Id = sp.Id,
-                    Name = sp.Name,
-                    Description = sp.Description,
-                    Price = sp.Price,
-                    Duration = sp.Duration,
-                    IncludedHours = sp.IncludedHours,
-                })
-                .ToListAsync();
+            // var subscriptions = await Context.Subscriptions
+            //     .Where(s => s.UserId == userId);
+            // var history = new SubscriptionHistory
+            //     {
+            //         Id = sp.Id,
+            //         Name = sp.Name,
+            //         Description = sp.Description,
+            //         Price = sp.Price,
+            //         Duration = sp.Duration,
+            //         IncludedHours = sp.IncludedHours,
+            //     });
 
-            return Result.Success<IEnumerable<SubscriptionPlanDto>>(plans);
+            // return Result.Success(history);
+            throw new NotImplementedException();
         }
         catch (NpgsqlException e)
         {
-            return Result.Fail<IEnumerable<SubscriptionPlanDto>>($"DB error: {e.Message}.");
+            return Result.Fail<SubscriptionHistory>($"DB error: {e.Message}.");
         }
         catch (Exception e)
         {
-            return Result.Fail<IEnumerable<SubscriptionPlanDto>>(
+            return Result.Fail<SubscriptionHistory>(
                 $"Failure retrieving subscription plans: {e.Message}.");
         }
     }
@@ -174,52 +174,53 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
 
     public async Task<Result<Subscription>> ChangeSubscriptionAsync(int currSubscriptionId, int newPlanId)
     {
-        try
-        {
-            var user = await Context.Users.FindAsync(userId);
-            if (user == null)
-            {
-                return Result.Fail<LiqPayPaymentData>($"No user {userId} specified in order request");
-            }
-
-            var subscriptionPlan = await Context.SubscriptionPlans.FindAsync(subscriptionPlanId);
-            if (subscriptionPlan is null || !subscriptionPlan.IsActive)
-            {
-                return Result.Fail<LiqPayPaymentData>($"Subscription plan with id {subscriptionPlanId} not available");
-            }
-
-            var subscription = new Subscription
-            {
-                Status = SubscriptionStatus.NotPaid,
-                TotalAmount = subscriptionPlan.Price,
-                PaymentStatus = PaymentStatus.NotPaid,
-
-                UserId = userId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-            };
-
-            await Context.AddAsync(subscription);
-            await Context.SaveChangesAsync();
-
-            var paymentDataResult = await _paymentService.CreatePayment(subscription.Id, subscription.TotalAmount);
-            if (paymentDataResult.Failure)
-            {
-                return Result.Fail<LiqPayPaymentData>($"{paymentDataResult.Error}");
-            }
-
-            scope.Complete();
-
-            return Result.Success(paymentDataResult.Value);
-        }
-        catch (NpgsqlException e)
-        {
-            return Result.Fail<LiqPayPaymentData>($"DB error: {e.Message}.");
-        }
-        catch (Exception e)
-        {
-            return Result.Fail<LiqPayPaymentData>($"Failure placing order: {e.Message}");
-        }
+        throw new NotImplementedException();
+        // try
+        // {
+        //     var user = await Context.Users.FindAsync(userId);
+        //     if (user == null)
+        //     {
+        //         return Result.Fail<LiqPayPaymentData>($"No user {userId} specified in order request");
+        //     }
+        //
+        //     var subscriptionPlan = await Context.SubscriptionPlans.FindAsync(subscriptionPlanId);
+        //     if (subscriptionPlan is null || !subscriptionPlan.IsActive)
+        //     {
+        //         return Result.Fail<LiqPayPaymentData>($"Subscription plan with id {subscriptionPlanId} not available");
+        //     }
+        //
+        //     var subscription = new Subscription
+        //     {
+        //         Status = SubscriptionStatus.NotPaid,
+        //         TotalAmount = subscriptionPlan.Price,
+        //         PaymentStatus = PaymentStatus.NotPaid,
+        //
+        //         UserId = userId,
+        //         CreatedAt = DateTime.UtcNow,
+        //         UpdatedAt = DateTime.UtcNow,
+        //     };
+        //
+        //     await Context.AddAsync(subscription);
+        //     await Context.SaveChangesAsync();
+        //
+        //     var paymentDataResult = await _paymentService.CreatePayment(subscription.Id, subscription.TotalAmount);
+        //     if (paymentDataResult.Failure)
+        //     {
+        //         return Result.Fail<LiqPayPaymentData>($"{paymentDataResult.Error}");
+        //     }
+        //
+        //     scope.Complete();
+        //
+        //     return Result.Success(paymentDataResult.Value);
+        // }
+        // catch (NpgsqlException e)
+        // {
+        //     return Result.Fail<LiqPayPaymentData>($"DB error: {e.Message}.");
+        // }
+        // catch (Exception e)
+        // {
+        //     return Result.Fail<LiqPayPaymentData>($"Failure placing order: {e.Message}");
+        // }
     }
 
     public async Task<Result> CancelSubscriptionAsync(int subscriptionId)
