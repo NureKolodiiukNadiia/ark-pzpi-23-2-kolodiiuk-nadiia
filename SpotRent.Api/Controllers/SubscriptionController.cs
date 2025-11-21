@@ -1,53 +1,44 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SpotRent.Api.Dtos;
+using SpotRent.Api.Dtos.Subscriptions;
 using SpotRent.Domain.Entities;
 using SpotRent.Services.Interfaces;
+using SpotRent.Services.Subscriptions;
 
 namespace SpotRent.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SubscriptionController : ControllerBase
+public class SubscriptionController : BaseController<SubscriptionController>
 {
     private readonly ISubscriptionService _subscriptionService;
 
-    public SubscriptionController(ISubscriptionService subscriptionService)
+    public SubscriptionController(ISubscriptionService subscriptionService, ILogger<SubscriptionController> logger)
+        : base(logger)
     {
         _subscriptionService = subscriptionService;
     }
 
-    // GET /api/subscription?userId=1&status=active&limit=50&offset=0
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Subscription>>> GetSubscriptions(
-        [FromQuery] int? userId,
-        [FromQuery] string? status,
-        [FromQuery] int limit = 50,
-        [FromQuery] int offset = 0)
-    {
-        throw new NotImplementedException();
-    }
-
-    // GET /api/subscription/{id}
-    [HttpGet("{id:int}")]
-    public async Task<ActionResult<Subscription>> GetSubscriptionAsync(int id)
-    {
-        throw new NotImplementedException();
-    }
-
-    // POST /api/subscription
     [Authorize(Roles = "User")]
     [HttpPost]
     public async Task<ActionResult> CreateSubscriptionAsync([FromBody] CreateSubscriptionDto subscriptionDto)
     {
-        var result = await _subscriptionService.SubscribeAsync(request.UserId, request.PlanId);
+        var result = await _subscriptionService.SubscribeAsync(subscriptionDto.UserId, subscriptionDto.PlanId);
         if (result.Failure)
         {
-            return BadRequest(result.Error);
+            return StatusCode(StatusCodes.Status400BadRequest, result.Error);
         }
 
         return StatusCode(StatusCodes.Status201Created, new { id = result.Value });
     }
 
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<Subscription>> GetSubscriptionByIdAsync(int id)
+    {
+        throw new NotImplementedException();
+        var result = await _subscriptionService.GetSubscriptionByIdAsync(id);
+    }
 
     [Authorize(Roles = "User")]
     [HttpGet("me/{userId:int}")]
@@ -60,45 +51,7 @@ public class SubscriptionController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, result.Error);
         }
 
-        return Ok(result.Value);
-    }
-
-    // PUT /api/subscription/{id}
-    [HttpPut("{id:int}")]
-    public async Task<ActionResult> UpdateSubscriptionAsync(int id, [FromBody] UpdateSubscriptionDto subscriptionDto)
-    {
-        throw new NotImplementedException();
-    }
-
-    [HttpGet("plans")]
-    public async Task<IActionResult> GetPlansAsync()
-    {
-        var result = await _subscriptionService.GetPlansAsync();
-        if (result.Failure)
-        {
-            return BadRequest(result.Error);
-        }
-
-        return Ok(new { data = result.Value });
-    }
-
-    [HttpGet("plans/{id:int}")]
-    public async Task<IActionResult> GetPlanAsync(int id)
-    {
-        var result = await _subscriptionService.GetPlanByIdAsync(id);
-        if (result.Failure)
-        {
-            return BadRequest(result.Error);
-        }
-
-        return Ok(result.Value);
-    }
-
-    // GET /api/subscription/user/{userId}
-    [HttpGet("user/{userId:int}")]
-    public async Task<ActionResult<IEnumerable<Subscription>>> GetUserSubscriptionsAsync(int userId)
-    {
-        throw new NotImplementedException();
+        return StatusCode(StatusCodes.Status200OK, result.Value);
     }
 
     [Authorize(Roles = "User")]
@@ -109,10 +62,10 @@ public class SubscriptionController : ControllerBase
         var result = await _subscriptionService.ChangeSubscriptionAsync(request.SubscriptionId, request.NewPlanId);
         if (result.Failure)
         {
-            return BadRequest(result.Error);
+            return StatusCode(StatusCodes.Status400BadRequest, result.Error);
         }
 
-        return Ok(result.Value);
+        return StatusCode(StatusCodes.Status200OK, result.Value);
     }
 
     [Authorize(Roles = "User")]
@@ -123,17 +76,9 @@ public class SubscriptionController : ControllerBase
         var result = await _subscriptionService.CancelSubscriptionAsync(subscriptionId);
         if (result.Failure)
         {
-            return BadRequest(result.Error);
+            return StatusCode(StatusCodes.Status400BadRequest, result.Error);
         }
 
-        return Ok();
+        return StatusCode(StatusCodes.Status200OK);
     }
-}
-
-// Minimal request DTO used by SubscribeUserAsync - adjust or remove if project already contains a similar DTO.
-public record SubscribeUserRequest
-{
-    public int PlanId { get; init; }
-    public string? PaymentMethod { get; init; }
-    public DateTime? StartDate { get; init; }
 }
