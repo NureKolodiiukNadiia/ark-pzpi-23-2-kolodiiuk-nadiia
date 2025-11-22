@@ -1,13 +1,12 @@
 using SpotRent.Domain.Common;
 using SpotRent.Domain.Entities;
-using SpotRent.Services.Payment;
 using SpotRent.Services.Subscriptions;
 
 namespace SpotRent.Services.Interfaces;
 
 public interface ISubscriptionService
 {
-    Task<Result<LiqPayPaymentData>> SubscribeAsync(int userId, int subscriptionPlanId);
+    Task<Result<SubscriptionCreationResponse>> SubscribeAsync(int userId, int subscriptionPlanId);
 
     Task<Result<SubscriptionDto>> GetCurrentUserSubscriptionAsync(int userId);
 

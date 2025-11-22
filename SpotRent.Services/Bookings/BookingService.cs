@@ -1,81 +1,375 @@
-using System.Diagnostics;
+using System.Linq.Expressions;
+using System.Transactions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using SpotRent.Domain.Common;
 using SpotRent.Domain.Entities;
+using SpotRent.Domain.Enums;
 using SpotRent.Infrastructure;
 using SpotRent.Services.Interfaces;
+using SpotRent.Services.Logging;
 
 namespace SpotRent.Services.Bookings;
 
-public class BookingService : IBookingService
+public class BookingService : BaseService<BookingService>, IBookingService
 {
-    private readonly SpotRentDbContext _context;
-    
-    private readonly ILogger<BookingService> _logger;
+    private readonly IPaymentService _paymentService;
 
-    public BookingService(SpotRentDbContext context, ILogger<BookingService> logger)
+    private readonly ISpaceService _spaceService;
+
+    public BookingService(
+        SpotRentDbContext context,
+        ILogger<BookingService> logger,
+        IPaymentService paymentService,
+        ISpaceService spaceService)
+        : base(context, logger)
     {
-        _context = context;
-        _logger = logger;
+        _paymentService = paymentService;
+        _spaceService = spaceService;
     }
 
-    public async Task<Result<Booking>> CreateBookingAsync(Booking booking)
+    public async Task<Result<BookingCreationResponse>> CreateBookingAsync(int userId, CreateBookingRequest req)
     {
-        throw new NotImplementedException();
+        using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+        Space space;
+        try
+        {
+            var userExists = await Context.Users.AnyAsync(u => u.Id == userId);
+            if (!userExists)
+            {
+                return Result.Fail<BookingCreationResponse>("No user with specified id");
+            }
+
+            space = await Context.Spaces.FindAsync(req.SpaceId);
+            if (space is null)
+            {
+                return Result.Fail<BookingCreationResponse>($"Space with id {req.SpaceId} doesn't exist");
+            }
+
+            var isSpaceAvailableRes =
+                await _spaceService.IsSpaceAvailableAsync(req.SpaceId, req.StartTime, req.EndTime);
+            if (!isSpaceAvailableRes.IsSuccess || !isSpaceAvailableRes.Value)
+            {
+                return Result.Fail<BookingCreationResponse>($"Space with id {req.SpaceId} is not available");
+            }
+
+            var booking = await CreateBooking();
+
+            if (booking is null)
+            {
+                return Result.Fail<BookingCreationResponse>("Invalid duration");
+            }
+
+            var paymentDataResult = await _paymentService.CreatePayment(booking.Id, booking.TotalAmount);
+            if (paymentDataResult.Failure)
+            {
+                return Result.Fail<BookingCreationResponse>($"{paymentDataResult.Error}");
+            }
+
+            scope.Complete();
+
+            return Result.Success(new BookingCreationResponse
+                { BookingId = booking.Id, LiqPayPaymentData = paymentDataResult.Value });
+        }
+        catch (NpgsqlException e)
+        {
+            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
+                "DB error creating booking. Error: {error}", e.Message);
+
+            return Result.Fail<BookingCreationResponse>($"DB error: {e.Message}.");
+        }
+        catch (Exception e)
+        {
+            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
+                "Error creating booking. Error: {error}", e.Message);
+
+            return Result.Fail<BookingCreationResponse>($"Failure creating booking: {e.Message}");
+        }
+
+        async Task<Booking> CreateBooking()
+        {
+            var now = DateTime.UtcNow;
+            var hours = Convert.ToDecimal((req.EndTime - req.StartTime).TotalHours);
+
+            var booking = new Booking
+            {
+                UserId = userId,
+                SpaceId = req.SpaceId,
+                StartTime = req.StartTime,
+                EndTime = req.EndTime,
+                Status = BookingStatus.Pending,
+                TotalAmount = space.HourlyRate * hours,
+                PaymentStatus = PaymentStatus.NotPaid,
+                TransactionId = 0,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CancelledAt = null
+            };
+
+            await Context.AddAsync(booking);
+            await Context.SaveChangesAsync();
+
+            return booking;
+        }
     }
 
     public async Task<Result<IEnumerable<Booking>>> GetUserBookingsHistoryAsync(int userId)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var userExists = await Context.Users.AnyAsync(u => u.Id == userId);
+            if (!userExists)
+            {
+                return Result.Fail<IEnumerable<Booking>>("No user with specified id");
+            }
+
+            var history = await Context.Bookings
+                .Include(b => b.Space)
+                .ThenInclude(s => s.Address)
+                .Where(b => b.UserId == userId)
+                .ToListAsync();
+
+            return Result.Success<IEnumerable<Booking>>(history);
+        }
+        catch (NpgsqlException e)
+        {
+            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
+                "DB error getting bookings of user {bookingId}. Error: {error}", userId, e.Message);
+
+            return Result.Fail<IEnumerable<Booking>>($"DB error: {e.Message}.");
+        }
+        catch (Exception e)
+        {
+            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
+                "Error getting bookings of user {userId}. Error: {error}", userId, e.Message);
+
+            return Result.Fail<IEnumerable<Booking>>($"Failure getting bookings: {e.Message}");
+        }
     }
 
-    public Task<Result<IEnumerable<Booking>>> GetUserActiveBookingsAsync(int userId)
+    public async Task<Result<IEnumerable<Booking>>> GetUserActiveBookingsAsync(int userId)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var userExists = await Context.Users.AnyAsync(u => u.Id == userId);
+            if (!userExists)
+            {
+                return Result.Fail<IEnumerable<Booking>>("No user with specified id");
+            }
+
+            var now = DateTime.UtcNow;
+            var history = await Context.Bookings
+                .Where(b => b.UserId == userId && b.EndTime >= now && b.CancelledAt == null)
+                .Include(b => b.Space)
+                .ThenInclude(s => s.Address)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return Result.Success<IEnumerable<Booking>>(history);
+        }
+        catch (NpgsqlException e)
+        {
+            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
+                "DB error getting booking {bookingId}. Error: {error}", userId, e.Message);
+
+            return Result.Fail<IEnumerable<Booking>>($"DB error: {e.Message}.");
+        }
+        catch (Exception e)
+        {
+            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
+                "Error getting booking {userId}. Error: {error}", userId, e.Message);
+
+            return Result.Fail<IEnumerable<Booking>>($"Failure getting booking: {e.Message}");
+        }
     }
 
-    public Task<Result<IEnumerable<Booking>>> GetOwnerBookingsAsync(int ownerId)
+    public async Task<Result<IEnumerable<Booking>>> GetOwnerBookingsAsync(int ownerId)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var ownerExists = await Context.Users.AnyAsync(u => u.Id == ownerId);
+            if (!ownerExists)
+            {
+                return Result.Fail<IEnumerable<Booking>>("No owner with specified id");
+            }
+
+            var history = await Context.Bookings
+                .Include(b => b.Space)
+                .ThenInclude(s => s.Address)
+                .Where(b => b.Space.OwnerId == ownerId)
+                .ToListAsync();
+
+            return Result.Success<IEnumerable<Booking>>(history);
+        }
+        catch (NpgsqlException e)
+        {
+            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
+                "DB error getting bookings of owner {ownerId}. Error: {error}", ownerId, e.Message);
+
+            return Result.Fail<IEnumerable<Booking>>($"DB error: {e.Message}.");
+        }
+        catch (Exception e)
+        {
+            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
+                "Error getting bookings of owner {ownerId}. Error: {error}", ownerId, e.Message);
+
+            return Result.Fail<IEnumerable<Booking>>($"Failure getting bookings: {e.Message}");
+        }
     }
 
-    public Task<Result<IEnumerable<Booking>>> GetBookingsAsync(BookingFilterRequest filterRequest)
+    public async Task<Result<IEnumerable<Booking>>> GetOwnerActiveBookingsAsync(int ownerId)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var ownerExists = await Context.Users.AnyAsync(u => u.Id == ownerId);
+            if (!ownerExists)
+            {
+                return Result.Fail<IEnumerable<Booking>>("No owner with specified id");
+            }
+
+            var now = DateTime.UtcNow;
+            var history = await Context.Bookings
+                .Include(b => b.Space)
+                .ThenInclude(s => s.Address)
+                .Where(b => b.Space.OwnerId == ownerId && b.EndTime >= now && b.CancelledAt == null)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return Result.Success<IEnumerable<Booking>>(history);
+        }
+        catch (NpgsqlException e)
+        {
+            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
+                "DB error getting bookings of owner {ownerId}. Error: {error}", ownerId, e.Message);
+
+            return Result.Fail<IEnumerable<Booking>>($"DB error: {e.Message}.");
+        }
+        catch (Exception e)
+        {
+            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
+                "Error getting bookings of owner {ownerId}. Error: {error}", ownerId, e.Message);
+
+            return Result.Fail<IEnumerable<Booking>>($"Failure getting bookings: {e.Message}");
+        }
+    }
+
+    public async Task<Result<IEnumerable<Booking>>> GetBookingsAsync(BookingFilterRequest req)
+    {
+        try
+        {
+            var user = await Context.Users.FindAsync(req.UserId);
+            Role? parsedRole;
+            switch (req.Role)
+            {
+                case "User":
+                    parsedRole = Role.User;
+                    break;
+                case "Owner":
+                    parsedRole = Role.Owner;
+                    break;
+                default:
+                    parsedRole = null;
+                    break;
+            }
+
+            if (user is null || !parsedRole.HasValue || user.Role != parsedRole.Value)
+            {
+                return Result.Fail<IEnumerable<Booking>>("Unauthorized");
+            }
+
+            var filtered = Context.Bookings
+                .Include(b => b.Space)
+                .ThenInclude(s => s.Address)
+                .Where(BuildCondition());
+            req.OrderBy.Invoke(filtered);
+            await filtered.Skip(req.SkipCount).Take(req.TakeCount ?? 0).ToListAsync();
+
+            return Result.Success<IEnumerable<Booking>>(filtered);
+        }
+        catch (NpgsqlException e)
+        {
+            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
+                "DB error: {error}", e.Message);
+
+            return Result.Fail<IEnumerable<Booking>>($"DB error: {e.Message}.");
+        }
+        catch (Exception e)
+        {
+            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
+                "Error getting bookings. Error: {error}", e.Message);
+
+            return Result.Fail<IEnumerable<Booking>>($"Failure getting bookings: {e.Message}");
+        }
+
+        Expression<Func<Booking, bool>> BuildCondition()
+        {
+            return b => b.SpaceId == req.SpaceId
+                        && b.StartTime == req.StartTime
+                        && b.EndTime == req.EndTime
+                        && b.Status == req.Status
+                        && b.PaymentStatus == req.PaymentStatus;
+        }
     }
 
     public async Task<Result<Booking>> GetBookingByIdAsync(int id)
     {
-        var booking = await _context.Bookings.FindAsync(id);
+        try
+        {
+            var booking = await Context.Bookings
+                .Include(b => b.Space)
+                .ThenInclude(s => s.Address)
+                .FirstOrDefaultAsync(b => b.Id == id);
 
-        return (booking == null)
-            ? Result.Fail<Booking>("No booking with specified id")
-            : Result.Success(booking);
-    }
+            return booking == null
+                ? Result.Fail<Booking>("No booking with specified id")
+                : Result.Success(booking);
+        }
+        catch (NpgsqlException e)
+        {
+            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
+                "DB error getting booking {bookingId}. Error: {error}", id, e.Message);
 
-    public async Task<Result<Booking>> UpdateBookingAsync(Booking booking)
-    {
-        throw new NotImplementedException();
+            return Result.Fail<Booking>($"DB error: {e.Message}.");
+        }
+        catch (Exception e)
+        {
+            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
+                "Error getting booking {userId}. Error: {error}", id, e.Message);
+
+            return Result.Fail<Booking>($"Failure getting booking: {e.Message}");
+        }
     }
 
     public async Task<Result> CancelBookingAsync(int id)
     {
-        var booking = await _context.Bookings.FindAsync(id);
-        if (booking == null)
-        {
-            return Result.Fail("No booking with specified id");
-        }
-
         try
         {
-            _context.Remove(booking);
-            await _context.SaveChangesAsync();
+            var booking = await Context.Bookings.FindAsync(id);
+            if (booking == null)
+            {
+                return Result.Fail("No booking with specified id");
+            }
+
+            Context.Remove(booking);
+            await Context.SaveChangesAsync();
+
+            return Result.Success();
         }
-        catch (Exception e)
+        catch (NpgsqlException e)
         {
-            return Result.Fail($"{e.Message}");
+            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
+                "DB error getting booking {bookingId}. Error: {error}", id, e.Message);
+
+            return Result.Fail<Booking>($"DB error: {e.Message}.");
         }
 
-        return Result.Success();
+        catch (Exception e)
+        {
+            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
+                "Error getting booking {userId}. Error: {error}", id, e.Message);
+
+            return Result.Fail<Booking>($"Failure getting booking: {e.Message}");
+        }
     }
 }

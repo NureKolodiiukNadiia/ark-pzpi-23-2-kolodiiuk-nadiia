@@ -8,7 +8,6 @@ using SpotRent.Domain.Enums;
 using SpotRent.Infrastructure;
 using SpotRent.Services.Interfaces;
 using SpotRent.Services.Logging;
-using SpotRent.Services.Payment;
 
 namespace SpotRent.Services.Subscriptions;
 
@@ -25,7 +24,7 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
         _paymentService = paymentService;
     }
 
-    public async Task<Result<LiqPayPaymentData>> SubscribeAsync(int userId, int subscriptionPlanId)
+    public async Task<Result<SubscriptionCreationResponse>> SubscribeAsync(int userId, int subscriptionPlanId)
     {
         using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
 
@@ -35,37 +34,39 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
             var user = await Context.Users.FindAsync(userId);
             if (user == null)
             {
-                return Result.Fail<LiqPayPaymentData>($"No user {userId} specified in order request");
+                return Result.Fail<SubscriptionCreationResponse>($"No user {userId} specified in order request");
             }
 
             var existingSubscription = await Context.Subscriptions.FirstOrDefaultAsync(s => s.UserId == userId);
             if (existingSubscription is not null)
             {
-                return Result.Fail<LiqPayPaymentData>(
+                return Result.Fail<SubscriptionCreationResponse>(
                     $"User {userId} is already subscribed. Update subscription instead");
             }
 
             subscriptionPlan = await Context.SubscriptionPlans.FindAsync(subscriptionPlanId);
             if (subscriptionPlan is null || !subscriptionPlan.IsActive)
             {
-                return Result.Fail<LiqPayPaymentData>($"Subscription plan with id {subscriptionPlanId} not available");
+                return Result.Fail<SubscriptionCreationResponse>(
+                    $"Subscription plan with id {subscriptionPlanId} not available");
             }
 
             var subscription = await CreateSubscription();
             if (subscription is null)
             {
-                return Result.Fail<LiqPayPaymentData>("Invalid duration");
+                return Result.Fail<SubscriptionCreationResponse>("Invalid duration");
             }
 
             var paymentDataResult = await _paymentService.CreatePayment(subscription.Id, subscription.TotalAmount);
             if (paymentDataResult.Failure)
             {
-                return Result.Fail<LiqPayPaymentData>($"{paymentDataResult.Error}");
+                return Result.Fail<SubscriptionCreationResponse>($"{paymentDataResult.Error}");
             }
 
             scope.Complete();
 
-            return Result.Success(paymentDataResult.Value);
+            return Result.Success(new SubscriptionCreationResponse
+                { SubscriptionId = subscription.Id, LiqPayPaymentData = paymentDataResult.Value });
         }
         catch (NpgsqlException e)
         {
@@ -73,7 +74,7 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
                 "DB error subscribing user {userId} to plan {planId}. Error: {error}",
                 userId, subscriptionPlanId, e.Message);
 
-            return Result.Fail<LiqPayPaymentData>($"DB error: {e.Message}.");
+            return Result.Fail<SubscriptionCreationResponse>($"DB error: {e.Message}.");
         }
         catch (Exception e)
         {
@@ -81,7 +82,7 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
                 "Error subscribing user {userId} to plan {planId}. Error: {error}",
                 userId, subscriptionPlanId, e.Message);
 
-            return Result.Fail<LiqPayPaymentData>($"Failure placing order: {e.Message}");
+            return Result.Fail<SubscriptionCreationResponse>($"Failure placing order: {e.Message}");
         }
 
         async Task<Subscription> CreateSubscription()
