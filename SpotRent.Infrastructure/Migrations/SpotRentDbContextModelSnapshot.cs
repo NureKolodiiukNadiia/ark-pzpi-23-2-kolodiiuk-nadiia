@@ -240,7 +240,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_access_logs_user_id");
 
-                    b.ToTable("access_logs", (string)null);
+                    b.ToTable("access_logs");
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.Address", b =>
@@ -278,7 +278,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_address");
 
-                    b.ToTable("address", (string)null);
+                    b.ToTable("address");
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.Attribute", b =>
@@ -308,7 +308,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_attribute");
 
-                    b.ToTable("attribute", (string)null);
+                    b.ToTable("attribute");
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.AttributeValue", b =>
@@ -351,7 +351,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("SpaceId")
                         .HasDatabaseName("ix_attribute_value_space_id");
 
-                    b.ToTable("attribute_value", (string)null);
+                    b.ToTable("attribute_value");
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.Booking", b =>
@@ -362,10 +362,6 @@ namespace SpotRent.Infrastructure.Migrations
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BookingType")
-                        .HasColumnType("integer")
-                        .HasColumnName("booking_type");
 
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("timestamp with time zone")
@@ -380,6 +376,22 @@ namespace SpotRent.Infrastructure.Migrations
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("end_time");
+
+                    b.Property<DateTime>("PaymentCreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("payment_created_at");
+
+                    b.Property<string>("PaymentFailureReason")
+                        .HasColumnType("text")
+                        .HasColumnName("payment_failure_reason");
+
+                    b.Property<DateTime?>("PaymentProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("payment_processed_at");
+
+                    b.Property<int>("PaymentStatus")
+                        .HasColumnType("integer")
+                        .HasColumnName("payment_status");
 
                     b.Property<int>("SpaceId")
                         .HasColumnType("integer")
@@ -398,6 +410,10 @@ namespace SpotRent.Infrastructure.Migrations
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(10,2)")
                         .HasColumnName("total_amount");
+
+                    b.Property<long>("TransactionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("transaction_id");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
@@ -418,7 +434,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_bookings_user_id");
 
-                    b.ToTable("bookings", (string)null);
+                    b.ToTable("bookings");
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.Device", b =>
@@ -465,65 +481,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("SpaceId")
                         .HasDatabaseName("ix_devices_space_id");
 
-                    b.ToTable("devices", (string)null);
-                });
-
-            modelBuilder.Entity("SpotRent.Domain.Entities.Payment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("amount");
-
-                    b.Property<int?>("BookingId")
-                        .HasColumnType("integer")
-                        .HasColumnName("booking_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("FailureReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("failure_reason");
-
-                    b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("processed_at");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
-                        .HasColumnName("status");
-
-                    b.Property<int?>("SubscriptionId")
-                        .HasColumnType("integer")
-                        .HasColumnName("subscription_id");
-
-                    b.Property<string>("TransactionId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("transaction_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_payments");
-
-                    b.HasIndex("BookingId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_payments_booking_id");
-
-                    b.HasIndex("SubscriptionId")
-                        .HasDatabaseName("ix_payments_subscription_id");
-
-                    b.ToTable("payments", (string)null);
+                    b.ToTable("devices");
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.Space", b =>
@@ -567,6 +525,10 @@ namespace SpotRent.Infrastructure.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("image_url");
 
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_available");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -587,6 +549,10 @@ namespace SpotRent.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("space_type");
 
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
                     b.HasKey("Id")
                         .HasName("pk_spaces");
 
@@ -596,7 +562,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("OwnerId")
                         .HasDatabaseName("ix_spaces_owner_id");
 
-                    b.ToTable("spaces", (string)null);
+                    b.ToTable("spaces");
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.Subscription", b =>
@@ -607,6 +573,10 @@ namespace SpotRent.Infrastructure.Migrations
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -624,6 +594,22 @@ namespace SpotRent.Infrastructure.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("hours_used");
 
+                    b.Property<DateTime>("PaymentCreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("payment_created_at");
+
+                    b.Property<string>("PaymentFailureReason")
+                        .HasColumnType("text")
+                        .HasColumnName("payment_failure_reason");
+
+                    b.Property<DateTime?>("PaymentProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("payment_processed_at");
+
+                    b.Property<int>("PaymentStatus")
+                        .HasColumnType("integer")
+                        .HasColumnName("payment_status");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(10,2)")
                         .HasColumnName("price");
@@ -639,6 +625,14 @@ namespace SpotRent.Infrastructure.Migrations
                     b.Property<int>("SubscriptionPlanId")
                         .HasColumnType("integer")
                         .HasColumnName("subscription_plan_id");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("numeric")
+                        .HasColumnName("total_amount");
+
+                    b.Property<long>("TransactionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("transaction_id");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
@@ -659,7 +653,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_subscriptions_user_id");
 
-                    b.ToTable("subscriptions", (string)null);
+                    b.ToTable("subscriptions");
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.SubscriptionPlan", b =>
@@ -713,7 +707,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_subscription_plans");
 
-                    b.ToTable("subscription_plans", (string)null);
+                    b.ToTable("subscription_plans");
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.User", b =>
@@ -895,7 +889,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_user_refresh_tokens_user_id");
 
-                    b.ToTable("user_refresh_tokens", (string)null);
+                    b.ToTable("user_refresh_tokens");
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.WorkingHours", b =>
@@ -935,7 +929,7 @@ namespace SpotRent.Infrastructure.Migrations
                     b.HasIndex("SpaceId", "DayOfWeek")
                         .IsUnique();
 
-                    b.ToTable("working_hours", (string)null);
+                    b.ToTable("working_hours");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
@@ -1076,25 +1070,6 @@ namespace SpotRent.Infrastructure.Migrations
                     b.Navigation("Space");
                 });
 
-            modelBuilder.Entity("SpotRent.Domain.Entities.Payment", b =>
-                {
-                    b.HasOne("SpotRent.Domain.Entities.Booking", "Booking")
-                        .WithOne("Payment")
-                        .HasForeignKey("SpotRent.Domain.Entities.Payment", "BookingId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_payments_bookings_booking_id");
-
-                    b.HasOne("SpotRent.Domain.Entities.Subscription", "Subscription")
-                        .WithMany("Payments")
-                        .HasForeignKey("SubscriptionId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_payments_subscriptions_subscription_id");
-
-                    b.Navigation("Booking");
-
-                    b.Navigation("Subscription");
-                });
-
             modelBuilder.Entity("SpotRent.Domain.Entities.Space", b =>
                 {
                     b.HasOne("SpotRent.Domain.Entities.Address", "Address")
@@ -1171,11 +1146,6 @@ namespace SpotRent.Infrastructure.Migrations
                     b.Navigation("AttributeValues");
                 });
 
-            modelBuilder.Entity("SpotRent.Domain.Entities.Booking", b =>
-                {
-                    b.Navigation("Payment");
-                });
-
             modelBuilder.Entity("SpotRent.Domain.Entities.Device", b =>
                 {
                     b.Navigation("AccessLogs");
@@ -1192,11 +1162,6 @@ namespace SpotRent.Infrastructure.Migrations
                     b.Navigation("Devices");
 
                     b.Navigation("WorkingHours");
-                });
-
-            modelBuilder.Entity("SpotRent.Domain.Entities.Subscription", b =>
-                {
-                    b.Navigation("Payments");
                 });
 
             modelBuilder.Entity("SpotRent.Domain.Entities.SubscriptionPlan", b =>

@@ -1,330 +1,384 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SpotRent.Domain.Enums;
 using SpotRent.Services.Interfaces;
-using System.ComponentModel.DataAnnotations;
+using SpotRent.Api.Dtos;
+using SpotRent.Api.Dtos.Bookings;
 using SpotRent.Domain.Entities;
+using SpotRent.Domain.Extensions;
+using SpotRent.Services.Bookings;
+using SpotRent.Api.Logging;
+using SpotRent.Domain.Enums;
 
 namespace SpotRent.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class BookingsController : ControllerBase
+public class BookingsController : BaseController<BookingsController>
 {
     private readonly IBookingService _bookingService;
 
-    private readonly IPaymentService _paymentService;
-
-    private readonly ILogger<BookingsController> _logger;
-
-    public BookingsController(IBookingService bookingService, IPaymentService paymentService,
+    public BookingsController(
+        IBookingService bookingService,
         ILogger<BookingsController> logger)
+        : base(logger)
     {
         _bookingService = bookingService;
-        _paymentService = paymentService;
-        _logger = logger;
     }
 
-    [HttpPost]
-    public async Task<IActionResult> CreateBooking([FromBody] CreateBookingRequest request)
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [HttpPost("{userId:int}")]
+    public async Task<IActionResult> CreateBooking(int userId, CreateBookingRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        Log(LogLevel.Information, BookingsControllerEventIds.CreateBookingAttempt,
+            "Create booking attempt for user {UserId}", userId);
 
-        var booking = _mapper.Map<CreateBookingRequest, Booking>(request);
-        var bookingCreationResult = await _bookingService.CreateBookingAsync(booking);
-        if (bookingCreationResult.Failure)
+        if (userId < 1 || !request.IsValid())
         {
-            return BadRequest(bookingCreationResult.Error);
+            Log(LogLevel.Warning, BookingsControllerEventIds.CreateBookingInvalid,
+                "Create booking request is not valid");
+
+            return StatusCode(StatusCodes.Status400BadRequest, "Request is not valid");
         }
 
-        var response = _mapper.Map<Booking, BookingCreateResponse>(bookingCreationResult.Value);
+        var result = await _bookingService.CreateBookingAsync(userId, request);
+        result.OnSuccess(() =>
+                Log(LogLevel.Information, BookingsControllerEventIds.CreateBookingSuccess,
+                    "Successfully created booking"))
+            .OnFailure(() =>
+                Log(LogLevel.Error, BookingsControllerEventIds.CreateBookingFailure,
+                    "Failed to create booking. Error: {Error}", result.Error));
 
-        // Return Created with location header to GET /bookings/{id}
-        return CreatedAtAction(nameof(GetBooking), new { id = bookingCreationResult.Value.Id }, response);
+        return result.Failure
+            ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
+            : StatusCode(StatusCodes.Status201Created, result.Value);
     }
 
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpGet("users/{userId}/history")]
-    [Authorize(Roles = "User")]
+    // [Authorize(Roles = "User")]
     public async Task<IActionResult> GetUserBookingsHistory(int userId)
     {
-        var result = await _bookingService.GetUserBookingsHistoryAsync(userId);
-        if (result.Failure)
-            return BadRequest(result.Error);
-    
-        var items = _mapper.Map<List<BookingListItem>>(result.Value);
-        var dto = new BookingListResponse
+        Log(LogLevel.Information, BookingsControllerEventIds.GetUserBookingsHistoryAttempt,
+            "Get user bookings history attempt for user {UserId}", userId);
+
+        if (userId < 1)
         {
-            Data = items,
+            Log(LogLevel.Warning, BookingsControllerEventIds.GetUserBookingsHistoryInvalid,
+                "User ID is not valid");
+
+            return StatusCode(StatusCodes.Status400BadRequest, "Id is not valid");
+        }
+
+        var result = await _bookingService.GetUserBookingsHistoryAsync(userId);
+        result.OnSuccess(() =>
+                Log(LogLevel.Information, BookingsControllerEventIds.GetUserBookingsHistorySuccess,
+                    "Successfully retrieved user bookings history"))
+            .OnFailure(() =>
+                Log(LogLevel.Error, BookingsControllerEventIds.GetUserBookingsHistoryFailure,
+                    "Failed to retrieve user bookings history. Error: {Error}", result.Error));
+
+        if (result.Failure)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, result.Error);
+        }
+
+        List<BookingDetailsResponse> dtos = new();
+        foreach (var booking in result.Value)
+        {
+            dtos.Add(BookingDetailsResponse.MapBooking(booking));
+        }
+
+        var dto = new
+        {
+            Data = dtos,
             Pagination = new PaginationDto
             {
                 Page = 1,
-                PageSize = items.Count,
-                Total = items.Count
+                PageSize = dtos.Count,
+                Total = dtos.Count
             }
         };
-    
-        return Ok(dto);
+
+        return StatusCode(StatusCodes.Status200OK, dto);
     }
-    
+
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpGet("users/{userId}/active")]
-    [Authorize(Roles = "User")]
+    // [Authorize(Roles = "User")]
     public async Task<IActionResult> GetUserActiveBookings(int userId)
     {
-        var result = await _bookingService.GetUserActiveBookingsAsync(userId);
-        if (result.Failure)
-            return BadRequest(result.Error);
-    
-        var items = _mapper.Map<List<BookingListItem>>(result.Value);
-        var dto = new BookingListResponse
+        Log(LogLevel.Information, BookingsControllerEventIds.GetUserActiveBookingsAttempt,
+            "Get user active bookings attempt for user {UserId}", userId);
+
+        if (userId < 1)
         {
-            Data = items,
+            Log(LogLevel.Warning, BookingsControllerEventIds.GetUserActiveBookingsInvalid,
+                "User ID is not valid");
+
+            return StatusCode(StatusCodes.Status400BadRequest, "Id is not valid");
+        }
+
+        var result = await _bookingService.GetUserActiveBookingsAsync(userId);
+        result.OnSuccess(() =>
+                Log(LogLevel.Information, BookingsControllerEventIds.GetUserActiveBookingsSuccess,
+                    "Successfully retrieved user active bookings"))
+            .OnFailure(() =>
+                Log(LogLevel.Error, BookingsControllerEventIds.GetUserActiveBookingsFailure,
+                    "Failed to retrieve user active bookings. Error: {Error}", result.Error));
+
+        if (result.Failure)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, result.Error);
+        }
+
+        List<BookingDetailsResponse> dtos = new();
+        foreach (var booking in result.Value)
+        {
+            dtos.Add(BookingDetailsResponse.MapBooking(booking));
+        }
+
+        var dto = new
+        {
+            Data = dtos,
             Pagination = new PaginationDto
             {
                 Page = 1,
-                PageSize = items.Count,
-                Total = items.Count
+                PageSize = dtos.Count,
+                Total = dtos.Count
             }
         };
-    
-        return Ok(dto);
+
+        return StatusCode(StatusCodes.Status200OK, dto);
     }
-    
+
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpGet("owners/{ownerId}")]
-    [Authorize(Roles = "Owner")]
+    // [Authorize(Roles = "Owner")]
     public async Task<IActionResult> GetOwnerBookings(int ownerId)
     {
-        var result = await _bookingService.GetOwnerBookingsAsync(ownerId);
-        if (result.Failure)
-            return BadRequest(result.Error);
-    
-        var items = _mapper.Map<List<BookingListItem>>(result.Value);
-        var dto = new BookingListResponse
+        Log(LogLevel.Information, BookingsControllerEventIds.GetOwnerBookingsAttempt,
+            "Get owner bookings attempt for owner {OwnerId}", ownerId);
+
+        if (ownerId < 1)
         {
-            Data = items,
+            Log(LogLevel.Warning, BookingsControllerEventIds.GetOwnerBookingsInvalid,
+                "Owner ID is not valid");
+
+            return StatusCode(StatusCodes.Status400BadRequest, ownerId);
+        }
+
+        var result = await _bookingService.GetOwnerBookingsAsync(ownerId);
+        result.OnSuccess(() =>
+                Log(LogLevel.Information, BookingsControllerEventIds.GetOwnerBookingsSuccess,
+                    "Successfully retrieved owner bookings"))
+            .OnFailure(() =>
+                Log(LogLevel.Error, BookingsControllerEventIds.GetOwnerBookingsFailure,
+                    "Failed to retrieve owner bookings. Error: {Error}", result.Error));
+
+        if (result.Failure)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, result.Error);
+        }
+
+        List<BookingDetailsResponse> dtos = new();
+        foreach (var booking in result.Value)
+        {
+            dtos.Add(BookingDetailsResponse.MapBooking(booking));
+        }
+
+        var dto = new
+        {
+            Data = dtos,
             Pagination = new PaginationDto
             {
                 Page = 1,
-                PageSize = items.Count,
-                Total = items.Count
+                PageSize = dtos.Count,
+                Total = dtos.Count
             }
         };
-    
-        return Ok(dto);
+
+        return StatusCode(StatusCodes.Status200OK, dto);
     }
-    
-    [HttpGet]
-    [Authorize(Roles = "User")]
+
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [HttpGet("owners/{ownerId}/active")]
+    // [Authorize(Roles = "Owner")]
+    public async Task<IActionResult> GetOwnerActiveBookings(int ownerId)
+    {
+        Log(LogLevel.Information, BookingsControllerEventIds.GetOwnerBookingsAttempt,
+            "Get owner active bookings attempt for owner {OwnerId}", ownerId);
+
+        if (ownerId < 1)
+        {
+            Log(LogLevel.Warning, BookingsControllerEventIds.GetOwnerBookingsInvalid,
+                "Owner ID is not valid");
+
+            return StatusCode(StatusCodes.Status400BadRequest, ownerId);
+        }
+
+        var result = await _bookingService.GetOwnerActiveBookingsAsync(ownerId);
+        result.OnSuccess(() =>
+                Log(LogLevel.Information, BookingsControllerEventIds.GetOwnerBookingsSuccess,
+                    "Successfully retrieved owner active bookings"))
+            .OnFailure(() =>
+                Log(LogLevel.Error, BookingsControllerEventIds.GetOwnerBookingsFailure,
+                    "Failed to retrieve owner active bookings. Error: {Error}", result.Error));
+
+        if (result.Failure)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, result.Error);
+        }
+
+        List<BookingDetailsResponse> dtos = new();
+        foreach (var booking in result.Value)
+        {
+            dtos.Add(BookingDetailsResponse.MapBooking(booking));
+        }
+
+        var dto = new
+        {
+            Data = dtos,
+            Pagination = new PaginationDto
+            {
+                Page = 1,
+                PageSize = dtos.Count,
+                Total = dtos.Count
+            }
+        };
+
+        return StatusCode(StatusCodes.Status200OK, dto);
+    }
+
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [HttpGet("filter/{userId:int}")]
+    // [Authorize(Roles = "User, Owner")]
     public async Task<IActionResult> GetBookings(
-        [FromQuery] BookingStatus? status,
-        [FromQuery] bool? upcoming,
-        [FromQuery] bool? past,
+        [FromQuery] int userId,
+        [FromQuery] int? spaceId,
+        [FromQuery] DateTime? startTime,
+        [FromQuery] DateTime? endTime,
+        [FromQuery] BookingStatus status,
+        [FromQuery] PaymentStatus paymentStatus,
+        [FromQuery] string sort,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        // Map query into service call - assumes service supports filtering/pagination.
-        // If your IBookingService has a different signature adjust accordingly.
-        var listResult = await _bookingService.GetBookingsAsync(status, upcoming, past, page, pageSize);
-        if (listResult.Failure)
+        Log(LogLevel.Information, BookingsControllerEventIds.GetBookingsAttempt, "Get bookings attempt");
+        var requesterRole = HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                            ?? HttpContext?.User?.FindFirst("role")?.Value
+                            ?? "Unknown";
+
+        Log(LogLevel.Debug, BookingsControllerEventIds.GetBookingsAttempt, "Requester role: {Role}", requesterRole);
+        var orderBy = BuildOrderByDelegate(sort);
+        var skipCount = (page - 1) * pageSize;
+        int? takeCount = pageSize;
+
+        var result = await _bookingService.GetBookingsAsync(new BookingFilterRequest
         {
-            return BadRequest(listResult.Error);
+            Role = requesterRole,
+            UserId = userId,
+            SpaceId = spaceId,
+            StartTime = startTime,
+            EndTime = endTime,
+            Status = status,
+            PaymentStatus = paymentStatus,
+            OrderBy = orderBy,
+            SkipCount = skipCount,
+            TakeCount = takeCount
+        });
+        result.OnSuccess(() =>
+                Log(LogLevel.Information, BookingsControllerEventIds.GetBookingsSuccess,
+                    "Successfully retrieved bookings"))
+            .OnFailure(() =>
+                Log(LogLevel.Error, BookingsControllerEventIds.GetBookingsFailure,
+                    "Failed to retrieve bookings. Error: {Error}", result.Error));
+
+        switch (result.Failure)
+        {
+            case true when result.Error == "Unauthorized":
+                return StatusCode(StatusCodes.Status401Unauthorized);
+            case true:
+                return StatusCode(StatusCodes.Status500InternalServerError, result.Error);
         }
 
-        var dto = new BookingListResponse
-        {
-            Data = _mapper.Map<List<Booking>, List<BookingListItem>>(listResult.Value.Items),
-            Pagination = new PaginationDto
-            {
-                Page = listResult.Value.Page,
-                PageSize = listResult.Value.PageSize,
-                Total = listResult.Value.Total
-            }
-        };
+        var bookings = result.Value.Select(BookingDetailsResponse.MapBooking);
+        var total = result.Value.Count();
+        var totalPages = (int)Math.Ceiling(total / (double)pageSize);
 
-        return Ok(dto);
+        return StatusCode(StatusCodes.Status200OK, new
+        {
+            Bookings = bookings, Total = total, TotalPages = totalPages, Page = page, PageSize = pageSize
+        });
     }
 
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetBooking(int id)
     {
-        var bookingResult = await _bookingService.GetBookingByIdAsync(id);
-        if (bookingResult.Failure)
+        Log(LogLevel.Information, BookingsControllerEventIds.GetBookingAttempt,
+            "Get booking attempt for ID {Id}", id);
+
+        if (id < 1)
         {
-            return BadRequest(bookingResult.Error);
+            Log(LogLevel.Warning, BookingsControllerEventIds.GetBookingInvalid, "Booking ID is not valid");
+
+            return StatusCode(StatusCodes.Status400BadRequest, "Id is not valid");
         }
 
-        var dto = _mapper.Map<Booking, BookingDetailsResponse>(bookingResult.Value);
-        return Ok(dto);
+        var result = await _bookingService.GetBookingByIdAsync(id);
+        result.OnSuccess(() =>
+                Log(LogLevel.Information, BookingsControllerEventIds.GetBookingSuccess,
+                    "Successfully retrieved booking"))
+            .OnFailure(() =>
+                Log(LogLevel.Error, BookingsControllerEventIds.GetBookingFailure,
+                    "Failed to retrieve booking. Error: {Error}", result.Error));
+
+        if (result.Failure)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, result.Error);
+        }
+
+        var dto = BookingDetailsResponse.MapBooking(result.Value);
+
+        return StatusCode(StatusCodes.Status200OK, dto);
     }
 
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> UpdateBooking(int id, [FromBody] UpdateBookingRequest request)
+    public async Task<IActionResult> CancelBooking(int id)
     {
-        var booking = _mapper.Map<UpdateBookingRequest, Booking>(request);
-        booking.Id = id;
-        var updateBookingResult = await _bookingService.UpdateBookingAsync(booking);
-        if (updateBookingResult.Failure)
-        {
-            return BadRequest(updateBookingResult.Error);
-        }
+        Log(LogLevel.Information, BookingsControllerEventIds.CancelBookingAttempt,
+            "Cancel booking attempt for ID {Id}", id);
 
-        return Ok(_mapper.Map<Booking, BookingDetailsResponse>(updateBookingResult.Value));
+        return StatusCode(418);
     }
 
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> CancelBooking(int id, [FromBody] CancelBookingRequest request)
+    private Func<IQueryable<Booking>, IOrderedQueryable<Booking>> BuildOrderByDelegate(string sort)
     {
-        if (request == null || string.IsNullOrWhiteSpace(request.Reason))
-            return BadRequest("Cancellation reason is required.");
-
-        // Try to cancel via service (assumes Cancel/Refund support)
-        var cancelResult = await _bookingService.CancelBookingAsync(id);
-        if (cancelResult.Failure)
+        Func<IQueryable<Booking>, IOrderedQueryable<Booking>> orderBy = sort switch
         {
-            return BadRequest(cancelResult.Error);
-        }
+            "start-time-asc" => q => q.OrderBy(s => s.StartTime),
+            "start-time-desc" => q => q.OrderByDescending(s => s.StartTime),
+            "newest" => q => q.OrderByDescending(s => s.CreatedAt),
+            _ => q => q.OrderBy(s => s.CreatedAt)
+        };
 
-        var response = _mapper.Map<CancelBookingResponse>(cancelResult.Value);
-        return Ok(response);
+        return orderBy;
     }
 }
-
-#region DTOs
-
-public class CreateBookingRequest
-{
-    [Required] public Guid SpaceId { get; set; }
-
-    [Required] public DateTime StartTime { get; set; }
-
-    [Required] public DateTime EndTime { get; set; }
-}
-
-public class BookingCreateResponse
-{
-    public Guid BookingId { get; set; }
-    public string BookingReference { get; set; }
-    public string Status { get; set; }
-    public Guid SpaceId { get; set; }
-    public string SpaceTitle { get; set; }
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public double TotalHours { get; set; }
-    public PricingDto Pricing { get; set; }
-    public PaymentInitiationDto Payment { get; set; }
-    public DateTime CreatedAt { get; set; }
-}
-
-public class BookingDetailsResponse
-{
-    public Guid Id { get; set; }
-    public string BookingReference { get; set; }
-    public string Status { get; set; }
-    public SpaceDto Space { get; set; }
-    public RenterDto Renter { get; set; }
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public double TotalHours { get; set; }
-    public PricingDto Pricing { get; set; }
-    public PaymentStatusDto Payment { get; set; }
-    public AccessCodeDto AccessCode { get; set; }
-    public DateTime CreatedAt { get; set; }
-}
-
-public class BookingListResponse
-{
-    public List<BookingListItem> Data { get; set; }
-    public PaginationDto Pagination { get; set; }
-}
-
-public class BookingListItem
-{
-    public Guid Id { get; set; }
-    public string BookingReference { get; set; }
-    public string Status { get; set; }
-    public SpaceListDto Space { get; set; }
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public decimal TotalAmount { get; set; }
-    public string Currency { get; set; }
-}
-
-public class CancelBookingRequest
-{
-    [Required] public string Reason { get; set; }
-}
-
-public class CancelBookingResponse
-{
-    public Guid BookingId { get; set; }
-    public string Status { get; set; }
-    public RefundDto Refund { get; set; }
-}
-
-public class PricingDto
-{
-    public decimal HourlyRate { get; set; }
-    public decimal Subtotal { get; set; }
-    public decimal CommissionRate { get; set; }
-    public decimal CommissionAmount { get; set; }
-    public decimal TotalAmount { get; set; }
-    public string Currency { get; set; }
-}
-
-public class PaymentInitiationDto
-{
-    public string PaymentUrl { get; set; }
-    public string PaymentId { get; set; }
-    public DateTime ExpiresAt { get; set; }
-}
-
-public class PaymentStatusDto
-{
-    public string Status { get; set; }
-    public DateTime? PaidAt { get; set; }
-}
-
-public class AccessCodeDto
-{
-    public string Code { get; set; }
-    public string QrCodeUrl { get; set; }
-    public DateTime ValidFrom { get; set; }
-    public DateTime ValidUntil { get; set; }
-}
-
-public class SpaceDto
-{
-    public Guid Id { get; set; }
-    public string Title { get; set; }
-    public string Address { get; set; }
-}
-
-public class SpaceListDto
-{
-    public Guid Id { get; set; }
-    public string Title { get; set; }
-    public string PrimaryImage { get; set; }
-}
-
-public class RenterDto
-{
-    public Guid Id { get; set; }
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-}
-
-public class RefundDto
-{
-    public decimal Amount { get; set; }
-    public string Currency { get; set; }
-    public DateTime ExpectedAt { get; set; }
-}
-
-public class PaginationDto
-{
-    public int Page { get; set; }
-    public int PageSize { get; set; }
-    public long Total { get; set; }
-}
-
-#endregion

@@ -13,6 +13,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpotRent.Services", "SpotRe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpotRent.Infrastructure", "SpotRent.Infrastructure\SpotRent.Infrastructure.csproj", "{57138725-95CD-4BB4-99E9-CB3111AA673F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{9EF230D9-52C0-4171-B08B-1C8F09FFD337}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpotRent.UnitTests", "SpotRent.UnitTests\SpotRent.UnitTests.csproj", "{874FCF06-015C-4945-B182-9E36F7856A31}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +39,10 @@ Global
 		{57138725-95CD-4BB4-99E9-CB3111AA673F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{57138725-95CD-4BB4-99E9-CB3111AA673F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{57138725-95CD-4BB4-99E9-CB3111AA673F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{874FCF06-015C-4945-B182-9E36F7856A31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{874FCF06-015C-4945-B182-9E36F7856A31}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{874FCF06-015C-4945-B182-9E36F7856A31}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{874FCF06-015C-4945-B182-9E36F7856A31}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -44,6 +52,7 @@ Global
 		{2DC52681-00C9-4615-B6DC-A1827AF02458} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{20B974D8-E0EC-48CA-B42D-1634D01CAC43} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{57138725-95CD-4BB4-99E9-CB3111AA673F} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{874FCF06-015C-4945-B182-9E36F7856A31} = {9EF230D9-52C0-4171-B08B-1C8F09FFD337}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {80701FDE-9FBE-4692-AC56-F7A4C578FDED}
