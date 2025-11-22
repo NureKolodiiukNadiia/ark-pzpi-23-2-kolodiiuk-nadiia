@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace SpotRent.Domain.Entities;
 
 public class Address
@@ -12,5 +14,6 @@ public class Address
 
     public string Region { get; set; }
 
+    [JsonIgnore]
     public ICollection<Space> Spaces { get; set; } = new List<Space>();
 }
