@@ -1,18 +1,42 @@
-using SpotRent.Domain.Entities;
-using SpotRent.Domain.Enums;
+using Microsoft.Extensions.Logging;
+using SpotRent.Domain.Common;
+using SpotRent.Infrastructure;
 using SpotRent.Services.Interfaces;
 
 namespace SpotRent.Services.Devices;
 
-public class SmartLockService : ISmartLockService
+public class SmartLockService : BaseService<SmartLockService>, ISmartLockService
 {
-    public Task<AccessLog> LogAccessAsync(int userId, string deviceId, AccessType accessType, 
-        int? bookingId = null, bool isSuccessful = true, string errorMessage = null)
+    public SmartLockService(SpotRentDbContext context, ILogger<SmartLockService> logger) : base(context, logger)
+    {
+    }
+
+    public async Task<Result> RegisterDeviceAsync(int deviceId)
     {
         throw new NotImplementedException();
     }
 
-    public Task<bool> ValidateAccessAsync(int userId, string deviceId)
+    public async Task<Result> UpdateDeviceStatusAsync(int deviceId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<Result> UnlockAsync(int userId, string deviceId, string qrCode)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<Result> ConfirmUnlockAsync(int deviceId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<Result> ReportFailedUnlockAttemptAsync(int deviceId, string reason)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<Result<bool>> ValidateAccessAsync(int userId, string deviceId)
     {
         throw new NotImplementedException();
     }

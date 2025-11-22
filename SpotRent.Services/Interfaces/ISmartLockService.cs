@@ -1,11 +1,18 @@
-using SpotRent.Domain.Entities;
-using SpotRent.Domain.Enums;
+using SpotRent.Domain.Common;
 
 namespace SpotRent.Services.Interfaces;
 
 public interface ISmartLockService
 {
-    Task<AccessLog> LogAccessAsync(int userId, string deviceId, AccessType accessType, int? bookingId = null, bool isSuccessful = true, string errorMessage = null);
+    Task<Result> RegisterDeviceAsync(int deviceId);
 
-    Task<bool> ValidateAccessAsync(int userId, string deviceId);
+    Task<Result> UpdateDeviceStatusAsync(int deviceId);
+
+    Task<Result> UnlockAsync(int userId, string deviceId, string qrCode);
+
+    Task<Result> ConfirmUnlockAsync(int deviceId);
+
+    Task<Result> ReportFailedUnlockAttemptAsync(int deviceId, string reason);
+
+    Task<Result<bool>> ValidateAccessAsync(int userId, string deviceId);
 }

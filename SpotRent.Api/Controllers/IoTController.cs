@@ -1,132 +1,56 @@
-using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
-using SpotRent.Domain.Enums;
+using SpotRent.Api.Dtos.Iot;
 using SpotRent.Services.Interfaces;
 
 namespace SpotRent.Api.Controllers;
 
 [ApiController]
 [Route("api/iot")]
-public class IoTController : ControllerBase
+public class IoTController : BaseController<IoTController>
 {
-    private readonly IAccessLogService _accessLogService;
+    private readonly ISmartLockService _smartLockService;
 
-    private readonly ISpaceService _spaceService;
-        
-    public IoTController(IAccessLogService accessLogService, ISpaceService workspaceService)
-    {
-        _accessLogService = accessLogService;
-        _spaceService = workspaceService;
-    }
-        
-    [HttpPost("validate-access")]
-    public async Task<IActionResult> ValidateAccess([FromBody] ValidateAccessRequest request)
-    {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+    private readonly IQrScannerService _qrScannerService;
 
-        throw new NotImplementedException();
-        // if (user == null)
-        // {
-        //     await _accessLogService.LogAccessAsync(request.UserId, request.DeviceId, AccessType.AccessDenied,
-        //         errorMessage: "User not found");
-        //     return Unauthorized(new { Message = "Access denied", Reason = "Invalid user" });
-        // }
-        //
-        // var workspace = await _spaceService.GetSpaceByDeviceIdAsync(request.DeviceId);
-        // if (workspace == null)
-        // {
-        //     await _accessLogService.LogAccessAsync(request.UserId, request.DeviceId, AccessType.AccessDenied,
-        //         errorMessage: "Device not found");
-        //     return BadRequest(new { Message = "Device not found" });
-        // }
-        //
-        // var hasValidAccess = await _accessLogService.ValidateAccessAsync(request.UserId, request.DeviceId);
-        // if (!hasValidAccess)
-        // {
-        //     await _accessLogService.LogAccessAsync(request.UserId, request.DeviceId, AccessType.AccessDenied,
-        //         errorMessage: "No valid booking found");
-        //     return Unauthorized(new { Message = "Access denied", Reason = "No valid booking" });
-        // }
-        //
-        // await _accessLogService.LogAccessAsync(request.UserId, request.DeviceId, AccessType.Entry);
-        //
-        // return Ok(new { Message = "Access granted", UserId = request.UserId, DeviceId = request.DeviceId });
-    }
-        
-    [HttpPost("log-access")]
-    public async Task<IActionResult> LogAccess([FromBody] LogAccessRequest request)
+    public IoTController(
+        ISmartLockService smartLockService,
+        IQrScannerService qrScannerService,
+        ILogger<IoTController> logger)
+        : base(logger)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-                
-        var accessLog = await _accessLogService.LogAccessAsync(
-            request.UserId, 
-            request.DeviceId, 
-            request.AccessType,
-            request.BookingId,
-            request.IsSuccessful,
-            request.ErrorMessage
-        );
-            
-        return Ok(new { Id = accessLog.Id, Timestamp = accessLog.Timestamp });
+        _smartLockService = smartLockService;
+        _qrScannerService = qrScannerService;
     }
-        
+
+    [HttpPost("handshake")]
+    public async Task<IActionResult> Handshake(HandshakeRequest req)
+    {
+        return StatusCode(418);
+        //device registration
+    }
+
     [HttpPost("device-status")]
-    public async Task<IActionResult> UpdateDeviceStatus([FromBody] DeviceStatusRequest request)
+    public async Task<IActionResult> UpdateDeviceStatus(DeviceStatusRequest request)
     {
-        throw new NotImplementedException();
-        /*
-        // Log device status update
-        var spaceResult = await _spaceService.GetSpaceByDeviceIdAsync(request.DeviceId);
-        if (spaceResult == null)
-            return BadRequest(new { Message = "Device not found" });
-
-        // Update space availability based on device status if needed
-        spaceResult.Value.IsAvailable = request.IsOnline;
-        await _spaceService.UpdateSpaceAsync(spaceResult.Value);
-
-        return Ok(new { Message = "Device status updated" });
-        */
+        return StatusCode(418);
     }
-}
-    
-public class ValidateAccessRequest
-{
-    [Required]
-    public int UserId { get; set; }
-        
-    [Required]
-    public string DeviceId { get; set; }
-        
-    public string? AccessMethod { get; set; } // NFC, QR, Bluetooth
-}
-    
-public class LogAccessRequest
-{
-    [Required]
-    public int UserId { get; set; }
-        
-    [Required]
-    public string DeviceId { get; set; }
-        
-    [Required]
-    public AccessType AccessType { get; set; }
-        
-    public int? BookingId { get; set; }
-        
-    public bool IsSuccessful { get; set; } = true;
-        
-    public string? ErrorMessage { get; set; }
-}
-    
-public class DeviceStatusRequest
-{
-    [Required]
-    public string DeviceId { get; set; }
-        
-    [Required]
-    public bool IsOnline { get; set; }
-        
-    public string? StatusMessage { get; set; }
+
+    [HttpPost("unlock")]
+    public async Task<IActionResult> Unlock(int deviceId, int userId, string qrToken)
+    {
+        return StatusCode(418);
+    }
+
+    [HttpPost("confirm")]
+    public async Task<IActionResult> ConfirmUnlock(int deviceId)
+    {
+        return StatusCode(418);
+        // successful unlock
+    }
+
+    [HttpPost("fail")]
+    public async Task<IActionResult> ReportFailedAttempt(int deviceId, string reason)
+    {
+        return StatusCode(418);
+    }
 }
