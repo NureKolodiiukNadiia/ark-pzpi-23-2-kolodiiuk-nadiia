@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace SpotRent.Domain.Entities;
 
 public class WorkingHours
@@ -14,5 +16,6 @@ public class WorkingHours
 
     public bool IsClosed { get; set; } = false;
 
+    [JsonIgnore]
     public Space Space { get; set; }
 }

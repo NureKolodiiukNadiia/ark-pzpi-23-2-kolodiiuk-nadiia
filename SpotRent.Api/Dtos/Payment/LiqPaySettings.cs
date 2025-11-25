@@ -1,4 +1,4 @@
-﻿namespace SpotRent.Api.Dtos;
+﻿namespace SpotRent.Api.Dtos.Payment;
 
 public class LiqPaySettings
 {

@@ -1,4 +1,4 @@
-namespace SpotRent.Api.Dtos;
+namespace SpotRent.Api.Dtos.Bookings;
 
 public class PaginationDto
 {
