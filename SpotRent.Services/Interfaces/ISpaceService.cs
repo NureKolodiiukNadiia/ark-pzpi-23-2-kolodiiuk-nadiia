@@ -1,23 +1,24 @@
+using SpotRent.Domain.Common;
 using SpotRent.Domain.Entities;
+using SpotRent.Services.Spaces;
 
 namespace SpotRent.Services.Interfaces;
 
 public interface ISpaceService
 {
-    Task<IEnumerable<Space>> GetAllSpacesAsync();
+    Task<Result<IEnumerable<Space>>> FilterSpacesAsync(SpaceFilterRequest req);
 
-    Task<Space> GetSpaceByIdAsync(int id);
+    Task<Result<Space>> GetSpaceByIdAsync(int id);
 
-    Task<IEnumerable<Space>> GetAvailableSpacesAsync(DateTime startTime, DateTime endTime);
+    Task<Result<IEnumerable<Space>>> GetAvailableSpacesAsync(DateTime startTime, DateTime endTime, string city);
 
-    Task<Space> CreateSpaceAsync(Space space);
+    Task<Result<Space>> CreateSpaceAsync(Space space);
 
-    Task<Space> UpdateSpaceAsync(Space space);
+    Task<Result> UpdateSpaceAsync(Space space);
 
-    Task<bool> DeleteSpaceAsync(int id);
+    Task<Result> DeleteSpaceAsync(int id);
 
-    Task<bool> IsSpaceAvailableAsync(int workspaceId, DateTime startTime, DateTime endTime);
+    Task<Result<bool>> IsSpaceAvailableAsync(int workspaceId, DateTime startTime, DateTime endTime);
 
-    Task<Space> GetSpaceByDeviceIdAsync(string deviceId);
-    // Task<Space?> GetSpaceByDeviceIdAsync(string deviceId);
+    Task<Result<SpaceSchedule>> GetSpaceScheduleAsync(int spaceId, DateTime? startDate, DateTime? endDate);
 }

@@ -1,20 +1,72 @@
-﻿using System.Reflection;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using SpotRent.Api;
+using Microsoft.OpenApi.Models;
+using Serilog;
+using Serilog.Events;
 using SpotRent.Api.Dtos;
+using SpotRent.Api.Dtos.Payment;
+using SpotRent.Api.Middleware;
 using SpotRent.Domain.Entities;
 using SpotRent.Infrastructure;
 using SpotRent.Services;
 
+var config = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables()
+    .Build();
+
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(config)
+    .Enrich.FromLogContext()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .WriteTo.Console(
+        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {EventId}{NewLine}{Exception}")
+    .WriteTo.File(
+        path: "Logs/log-.txt",
+        rollingInterval: RollingInterval.Day,
+        fileSizeLimitBytes: 10_000_000, // 10 MB
+        rollOnFileSizeLimit: true,
+        shared: true,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {EventId} {Message:lj}{NewLine}{Exception}"
+    )
+    .CreateLogger();
+
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Host.UseSerilog();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Enter token",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAllOrigins", policy =>
@@ -25,7 +77,6 @@ builder.Services.AddCors(options =>
     });
 });
 builder.Services.AddControllers();
-builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
 builder.Services.AddDbContext<SpotRentDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")!));
@@ -96,33 +147,38 @@ builder.Services.AddAuthentication(options =>
         };
     });
 
+
+builder.WebHost.ConfigureKestrel(options => { options.AddServerHeader = false; });
+builder.Services.AddAuthorization();
 builder.Services.RegisterServices();
-builder.Services.RegisterAutomapper();
 builder.Services.Configure<LiqPaySettings>(builder.Configuration.GetSection("LiqPay"));
 
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+
 var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
+try
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    Log.Information("Starting up");
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    app.UseMiddleware<ExceptionHandlerMiddleware>();
+    app.UseCors("AllowAllOrigins");
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.MapControllers();
+
+    app.Run();
 }
-
-// app.UseMiddleware<ExceptionHandlerMiddleware>();
-//using var scope = app.Services.CreateScope();
-//var services = scope.ServiceProvider;
-//try
-//{
-//    DataSeed.Seed(services);
-//}
-//catch (Exception ex)
-//{
-//    Debug.WriteLine(ex.Message, ex.StackTrace);
-//}
-
-app.UseCors("AllowAllOrigins");
-app.UseAuthentication();
-app.UseAuthorization();
-app.MapControllers();
-
-app.Run();
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application start-up failed");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

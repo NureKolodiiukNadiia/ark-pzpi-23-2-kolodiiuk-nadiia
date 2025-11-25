@@ -1,0 +1,23 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpotRent.Domain.Entities;
+
+public class AttributeValue
+{
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public int Id { get; set; }
+
+    public string Value { get; set; }
+
+    public int? MinValue { get; set; }
+
+    public int? MaxValue { get; set; }
+
+    public int SpaceId { get; set; }
+
+    public int AttributeId { get; set; }
+
+    public Space Space { get; set; }
+
+    public Attribute Attribute { get; set; }
+}

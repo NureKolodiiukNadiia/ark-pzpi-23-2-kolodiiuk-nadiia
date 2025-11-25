@@ -2,7 +2,8 @@ namespace SpotRent.Domain.Enums;
 
 public enum PaymentStatus
 {
-    Paid,
-    Failed,
-    TestPaid
+    Paid = 0,
+    Failed = 1,
+    TestPaid = 2,
+    NotPaid = 3,
 }

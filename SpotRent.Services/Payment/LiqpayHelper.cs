@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 using SHA3.Net;
 
 namespace SpotRent.Services.Payment;
@@ -11,10 +12,10 @@ public class LiqPayHelper
 
     private readonly string _privateKey;
 
-    public LiqPayHelper(string publicKey, string privateKey)
+    public LiqPayHelper(IConfiguration configuration)
     {
-        _publicKey = publicKey;
-        _privateKey = privateKey;
+        _publicKey = configuration["LiqPay:PublicKey"];
+        _privateKey = configuration["LiqPay:PrivateKey"];
     }
 
     public LiqPayPaymentData GeneratePaymentData(decimal amount, string currency, string description, int orderId)
@@ -63,7 +64,7 @@ public class LiqPayHelper
         var signString = _privateKey + data + _privateKey;
         using var sha3 = Sha3.Sha3256();
         var hash = sha3.ComputeHash(Encoding.UTF8.GetBytes(signString));
-        
+
         return Convert.ToBase64String(hash);
     }
 }

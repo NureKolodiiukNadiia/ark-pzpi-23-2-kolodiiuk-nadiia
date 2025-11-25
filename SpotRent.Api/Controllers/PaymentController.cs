@@ -15,36 +15,10 @@ public class PaymentController : ControllerBase
 
     private readonly IPaymentService _paymentService;
 
-    public PaymentController(IConfiguration configuration, IPaymentService paymentService)
+    public PaymentController(IPaymentService paymentService, LiqPayHelper liqPayHelper)
     {
-        var publicKey = configuration["LiqPay:PublicKey"];
-        var privateKey = configuration["LiqPay:PrivateKey"];
-        _liqPayHelper = new LiqPayHelper(publicKey, privateKey);
         _paymentService = paymentService;
-    }
-
-    [HttpPost("create")]
-    public IActionResult CreatePayment([FromBody] CreatePaymentRequest request)
-    {
-        try
-        {
-            var paymentData = _liqPayHelper.GeneratePaymentData(
-                request.Amount,
-                request.Currency ?? "UAH",
-                request.Description,
-                request.PaymentId
-            );
-
-            return Ok(new
-            {
-                data = paymentData.Data,
-                signature = paymentData.Signature
-            });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, "Error creating payment");
-        }
+        _liqPayHelper = liqPayHelper;
     }
 
     [HttpPost("callback")]

@@ -8,65 +8,47 @@ public class SpaceConfiguration : IEntityTypeConfiguration<Space>
 {
     public void Configure(EntityTypeBuilder<Space> builder)
     {
-        builder.ToTable("space");
-
         builder.HasKey(s => s.Id);
-        builder.Property(s => s.Id).HasColumnName("space_id");
+        builder.Property(s => s.Id);
 
         builder.Property(s => s.Name)
-            .HasColumnName("name")
             .IsRequired()
             .HasMaxLength(200);
 
         builder.Property(s => s.Description)
-            .HasColumnName("description")
             .HasMaxLength(1000);
 
-        builder.Property(s => s.Type)
-            .HasColumnName("type")
+        builder.Property(s => s.SpaceType)
             .IsRequired();
 
         builder.Property(s => s.Capacity)
-            .HasColumnName("capacity")
+            .IsRequired();
+        
+        builder.Property(s => s.AreaSqm)
+            .IsRequired();
+        
+        builder.Property(s => s.Room)
+            .HasMaxLength(300)
             .IsRequired();
 
         builder.Property(s => s.HourlyRate)
-            .HasColumnName("hourly_rate")
             .IsRequired()
             .HasColumnType("decimal(10,2)");
 
-        builder.Property(s => s.Equipment)
-            .HasColumnName("equipment")
-            .HasMaxLength(1000);
-
         builder.Property(s => s.ImageUrl)
-            .HasColumnName("image_url")
             .HasMaxLength(500);
 
-        builder.Property(s => s.Floor)
-            .HasColumnName("floor")
-            .HasMaxLength(50);
-
-        builder.Property(s => s.RoomNumber)
-            .HasColumnName("room_number")
-            .HasMaxLength(20);
-
-        builder.Property(s => s.IsAvailable)
-            .HasColumnName("is_available")
-            .IsRequired()
-            .HasDefaultValue(true);
-
-        builder.Property(s => s.HasProjector).HasColumnName("has_projector");
-        builder.Property(s => s.HasWhiteboard).HasColumnName("has_whiteboard");
-        builder.Property(s => s.HasWiFi).HasColumnName("has_wifi");
-        builder.Property(s => s.HasAirConditioning).HasColumnName("has_air_conditioning");
-
         builder.Property(s => s.CreatedAt)
-            .HasColumnName("created_at")
             .HasColumnType("timestamp with time zone")
             .IsRequired()
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+        builder.Property(s => s.OwnerId)
+            .IsRequired();
+
+        builder.Property(s => s.AddressId)
+            .IsRequired();
+        
         builder.HasMany(s => s.Bookings)
             .WithOne(b => b.Space)
             .HasForeignKey(b => b.SpaceId)
@@ -75,6 +57,31 @@ public class SpaceConfiguration : IEntityTypeConfiguration<Space>
         builder.HasMany(s => s.Devices)
             .WithOne(d => d.Space)
             .HasForeignKey(d => d.SpaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(s => s.WorkingHours)
+            .WithOne(wh => wh.Space)
+            .HasForeignKey(wh => wh.SpaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+        
+        builder.HasMany(s => s.AttributeValues)
+            .WithOne(av => av.Space)
+            .HasForeignKey(av => av.SpaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+        
+        builder.HasOne(s => s.Owner)
+            .WithMany(u => u.Spaces)
+            .HasForeignKey(s => s.OwnerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(s => s.Address)
+            .WithMany(a => a.Spaces)
+            .HasForeignKey(s => s.AddressId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(s => s.AccessLogs)
+            .WithOne(al => al.Space)
+            .HasForeignKey(al => al.SpaceId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

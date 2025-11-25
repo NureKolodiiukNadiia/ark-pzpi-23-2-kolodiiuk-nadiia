@@ -3,15 +3,18 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
   </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Google.Apis.Auth" Version="1.71.0" />
         <PackageReference Include="LiqPay" Version="2024.4.908.5254" />
+        <PackageReference Include="LinqKit.Microsoft.EntityFrameworkCore" Version="8.1.5" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.0" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
         <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.0" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" />
+        <PackageReference Include="Serilog.AspNetCore" Version="8.0.0" />
+        <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
         <PackageReference Include="SHA3.Net" Version="2.0.0" />
     </ItemGroup>
     <ItemGroup>

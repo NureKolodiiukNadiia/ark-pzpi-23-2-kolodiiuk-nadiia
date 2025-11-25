@@ -1,83 +1,195 @@
-using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SpotRent.Api.Dtos;
+using SpotRent.Api.Logging;
 using SpotRent.Domain.Entities;
+using SpotRent.Domain.Extensions;
 using SpotRent.Services.Interfaces;
+using SpotRent.Services.Subscriptions;
 
 namespace SpotRent.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SubscriptionController : ControllerBase
+public class SubscriptionController : BaseController<SubscriptionController>
 {
     private readonly ISubscriptionService _subscriptionService;
 
-    private readonly IMapper _mapper;
-
-    public SubscriptionController(ISubscriptionService subscriptionService, IMapper mapper)
+    public SubscriptionController(ISubscriptionService subscriptionService, ILogger<SubscriptionController> logger)
+        : base(logger)
     {
         _subscriptionService = subscriptionService;
-        _mapper = mapper;
     }
 
-    // GET /api/subscription?userId=1&status=active&limit=50&offset=0
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Subscription>>> GetSubscriptions(
-        [FromQuery] int? userId,
-        [FromQuery] string? status,
-        [FromQuery] int limit = 50,
-        [FromQuery] int offset = 0)
-    {
-        throw new NotImplementedException();
-    }
-
-    // GET /api/subscription/{id}
-    [HttpGet("{id:int}")]
-    public async Task<ActionResult<Subscription>> GetSubscriptionAsync(int id)
-    {
-        throw new NotImplementedException();
-    }
-
-    // POST /api/subscription
+    // [Authorize(Roles = "User")]
     [HttpPost]
     public async Task<ActionResult> CreateSubscriptionAsync([FromBody] CreateSubscriptionDto subscriptionDto)
     {
-        throw new NotImplementedException();
+        if (!subscriptionDto.IsValid())
+        {
+            return StatusCode(StatusCodes.Status400BadRequest, "Id of user or plan is not valid");
+        }
+
+        var result = await _subscriptionService.SubscribeAsync(subscriptionDto.UserId, subscriptionDto.PlanId);
+
+        result
+            .OnSuccess(() =>
+            {
+                Log(LogLevel.Information, SubscriptionControllerEventIds.Subscribe,
+                    "Subscription created for user {userId}, plan {planId}.",
+                    subscriptionDto.UserId, subscriptionDto.PlanId);
+            })
+            .OnFailure(() =>
+            {
+                Log(LogLevel.Error, SubscriptionControllerEventIds.Subscribe,
+                    "Error creating subscription for user {userId}. Error: {error}",
+                    subscriptionDto.UserId, result.Error);
+            });
+
+        return result.Failure
+            ? StatusCode(StatusCodes.Status400BadRequest, result.Error)
+            : StatusCode(StatusCodes.Status201Created, result.Value);
     }
 
-    // PUT /api/subscription/{id}
-    [HttpPut("{id:int}")]
-    public async Task<ActionResult> UpdateSubscriptionAsync(int id, [FromBody] UpdateSubscriptionDto subscriptionDto)
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<Subscription>> GetSubscriptionByIdAsync(int id)
     {
-        throw new NotImplementedException();
+        if (id < 1)
+        {
+            return StatusCode(StatusCodes.Status400BadRequest, "Id is not valid");
+        }
+
+        var result = await _subscriptionService.GetSubscriptionByIdAsync(id);
+
+        result
+            .OnSuccess(() =>
+            {
+                Log(LogLevel.Information, SubscriptionControllerEventIds.GetSubscriptionById,
+                    "Retrieved subscription with id {id}.", id);
+            })
+            .OnFailure(() =>
+            {
+                Log(LogLevel.Error, SubscriptionControllerEventIds.GetSubscriptionById,
+                    "Error retrieving subscription with id {id}. Error: {error}", id, result.Error);
+            });
+
+        return result.Failure
+            ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
+            : StatusCode(StatusCodes.Status200OK, SubscriptionDto.MapSubscription(result.Value));
     }
 
-    // DELETE /api/subscription/{id}
-    [HttpDelete("{id:int}")]
-    public async Task<ActionResult> DeleteSubscriptionAsync(int id)
+    [HttpGet("history/{userId:int}")]
+    public async Task<IActionResult> GetSubscriptionHistory(int userId)
     {
-        throw new NotImplementedException();
+        if (userId < 1)
+        {
+            return StatusCode(StatusCodes.Status400BadRequest, "Id is not valid");
+        }
+
+        var result = await _subscriptionService.GetSubscriptionHistoryAsync(userId);
+
+        result
+            .OnSuccess(() =>
+            {
+                Log(LogLevel.Information, SubscriptionControllerEventIds.GetSubscriptionHistory,
+                    "Retrieved subscription history for user {userId}.", userId);
+            })
+            .OnFailure(() =>
+            {
+                Log(LogLevel.Error, SubscriptionControllerEventIds.GetSubscriptionHistory,
+                    "Error retrieving subscription history for user {userId}. Error: {error}",
+                    userId, result.Error);
+            });
+
+        return result.Failure
+            ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
+            : StatusCode(StatusCodes.Status200OK, result.Value);
     }
 
-    // POST /api/subscription/user/{userId}
-    [HttpPost("user/{userId:int}")]
-    public async Task<ActionResult> SubscribeUserAsync(int userId, [FromBody] SubscribeUserRequest? request = null)
+    // [Authorize(Roles = "User")]
+    [HttpGet("me/{userId:int}")]
+    public async Task<ActionResult> GetMySubscriptionAsync(int userId)
     {
-        throw new NotImplementedException();
+        if (userId < 1)
+        {
+            return StatusCode(StatusCodes.Status400BadRequest, "Id is not valid");
+        }
+
+        var result = await _subscriptionService.GetCurrentUserSubscriptionAsync(userId);
+
+        result
+            .OnSuccess(() =>
+            {
+                Log(LogLevel.Information, SubscriptionControllerEventIds.GetMySubscription,
+                    "Retrieved current subscription for user {userId}.", userId);
+            })
+            .OnFailure(() =>
+            {
+                Log(LogLevel.Error, SubscriptionControllerEventIds.GetMySubscription,
+                    "Error retrieving current subscription for user {userId}. Error: {error}",
+                    userId, result.Error);
+            });
+
+        return result.Failure
+            ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
+            : StatusCode(StatusCodes.Status200OK, result.Value);
     }
 
-    // GET /api/subscription/user/{userId}
-    [HttpGet("user/{userId:int}")]
-    public async Task<ActionResult<IEnumerable<Subscription>>> GetUserSubscriptionsAsync(int userId)
+    // [Authorize(Roles = "User")]
+    [HttpPut("{subscriptionId:int}/change")]
+    public async Task<ActionResult> ChangeSubscriptionAsync(int subscriptionId, int newPlanId)
     {
-        throw new NotImplementedException();
-    }
-}
+        if (subscriptionId < 1 || newPlanId < 1)
+        {
+            return StatusCode(StatusCodes.Status400BadRequest, "At least one of ids is not valid");
+        }
 
-// Minimal request DTO used by SubscribeUserAsync - adjust or remove if project already contains a similar DTO.
-public record SubscribeUserRequest
-{
-    public int PlanId { get; init; }
-    public string? PaymentMethod { get; init; }
-    public DateTime? StartDate { get; init; }
+        var result = await _subscriptionService.ChangeSubscriptionAsync(subscriptionId, newPlanId);
+
+        result
+            .OnSuccess(() =>
+            {
+                Log(LogLevel.Information, SubscriptionControllerEventIds.ChangeSubscription,
+                    "Changed subscription {subscriptionId} to plan {newPlanId}.", subscriptionId,
+                    newPlanId);
+            })
+            .OnFailure(() =>
+            {
+                Log(LogLevel.Error, SubscriptionControllerEventIds.ChangeSubscription,
+                    "Error changing subscription {subscriptionId} to plan {newPlanId}. Error: {error}",
+                    subscriptionId, newPlanId, result.Error);
+            });
+
+        return result.Failure
+            ? StatusCode(StatusCodes.Status400BadRequest, result.Error)
+            : StatusCode(StatusCodes.Status204NoContent);
+    }
+
+    // [Authorize(Roles = "User")]
+    [HttpPut("{userId:int}/{subscriptionId:int}/cancel")]
+    public async Task<ActionResult> CancelSubscriptionAsync(int userId, int subscriptionId)
+    {
+        if (subscriptionId < 1 || userId < 1)
+        {
+            return StatusCode(StatusCodes.Status400BadRequest, "At least one of ids is not valid");
+        }
+        var result = await _subscriptionService.CancelSubscriptionAsync(subscriptionId);
+
+        result
+            .OnSuccess(() =>
+            {
+                Log(LogLevel.Information, SubscriptionControllerEventIds.CancelSubscription,
+                    "Cancelled subscription {subscriptionId} for user {userId}.",
+                    subscriptionId, userId);
+            })
+            .OnFailure(() =>
+            {
+                Log(LogLevel.Error, SubscriptionControllerEventIds.CancelSubscription,
+                    "Error cancelling subscription {subscriptionId} for user {userId}. Error: {error}",
+                    subscriptionId, userId, result.Error);
+            });
+
+        return result.Failure
+            ? StatusCode(StatusCodes.Status400BadRequest, result.Error)
+            : StatusCode(StatusCodes.Status204NoContent);
+    }
 }

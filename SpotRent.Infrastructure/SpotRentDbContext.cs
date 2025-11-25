@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SpotRent.Domain.Entities;
+using SpotRent.Infrastructure.Extensions;
 
 namespace SpotRent.Infrastructure;
 
@@ -18,8 +19,6 @@ public class SpotRentDbContext : IdentityDbContext<User, IdentityRole<int>, int>
 
     public DbSet<Device> Devices { get; set; }
 
-    public DbSet<Payment> Payments { get; set; }
-
     public DbSet<Space> Spaces { get; set; }
 
     public DbSet<Subscription> Subscriptions { get; set; }
@@ -30,11 +29,13 @@ public class SpotRentDbContext : IdentityDbContext<User, IdentityRole<int>, int>
 
     public DbSet<UserRefreshToken> UserRefreshTokens { get; set; }
 
+    public DbSet<WorkingHours> WorkingHours { get; set; }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
 
-        // builder.UseSnakeCaseNamingConvention();
+        builder.UseSnakeCaseNamingConvention();
         builder.ApplyConfigurationsFromAssembly(Assembly.GetAssembly(typeof(SpotRentDbContext)));
     }
 
