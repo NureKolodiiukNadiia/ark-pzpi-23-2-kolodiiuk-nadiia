@@ -36,7 +36,7 @@ public class Space
 
     public DateTime UpdatedAt { get; set; }
 
-    public User Owner { get; set; } = new User();
+    public User Owner { get; set; }
 
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 

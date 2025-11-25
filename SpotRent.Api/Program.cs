@@ -8,6 +8,7 @@ using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Events;
 using SpotRent.Api.Dtos;
+using SpotRent.Api.Dtos.Payment;
 using SpotRent.Api.Middleware;
 using SpotRent.Domain.Entities;
 using SpotRent.Infrastructure;
@@ -22,14 +23,16 @@ Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(config)
     .Enrich.FromLogContext()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-    .WriteTo.Console()
+    .WriteTo.Console(
+        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {EventId}{NewLine}{Exception}")
     .WriteTo.File(
         path: "Logs/log-.txt",
         rollingInterval: RollingInterval.Day,
-        retainedFileCountLimit: 14,
-        fileSizeLimitBytes: 10_000_000,
+        fileSizeLimitBytes: 10_000_000, // 10 MB
         rollOnFileSizeLimit: true,
-        shared: true)
+        shared: true,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {EventId} {Message:lj}{NewLine}{Exception}"
+    )
     .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);

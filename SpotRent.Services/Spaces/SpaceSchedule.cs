@@ -4,5 +4,5 @@ public class SpaceSchedule
 {
     public int SpaceId { get; set; }
 
-    public IEnumerable<(DateTime startTime, DateTime endTime)> Bookings { get; set; }
+    public IEnumerable<StartEndTime> Bookings { get; set; }
 }

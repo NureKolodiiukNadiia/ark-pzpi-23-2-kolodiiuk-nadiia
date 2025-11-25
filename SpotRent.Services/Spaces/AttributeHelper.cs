@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Linq.Expressions;
+using System.Net;
 using LinqKit;
 using SpotRent.Domain.Entities;
 using SpotRent.Domain.Enums;
@@ -7,122 +9,123 @@ namespace SpotRent.Services.Spaces;
 
 public static class AttributeHelper
 {
-    public static Func<IQueryable<Space>, IOrderedQueryable<Space>> BuildOrderByDelegate(string sort)
+    public static Func<IQueryable<Space>, IOrderedQueryable<Space>> BuildOrderByDelegate(string? sort)
     {
-        if (string.IsNullOrEmpty(sort))
+        if (string.IsNullOrWhiteSpace(sort))
         {
             return q => q.OrderBy(s => s.Id);
         }
 
-        Func<IQueryable<Space>, IOrderedQueryable<Space>> orderBy = sort switch
+        return sort switch
         {
-            "price-asc" => q => q.OrderBy(s => s.HourlyRate),
-            "price-desc" => q => q.OrderByDescending(s => s.HourlyRate),
+            "price-asc" or "price_asc" => q => q.OrderBy(s => s.HourlyRate),
+            "price-desc" or "price_desc" => q => q.OrderByDescending(s => s.HourlyRate),
             "newest" => q => q.OrderByDescending(s => s.CreatedAt),
-            _ => q =>
-            {
-                if (sort == "price_asc")
-                {
-                    return q.OrderBy(s => s.HourlyRate);
-                }
-
-                if (sort == "price_desc")
-                {
-                    return q.OrderByDescending(s => s.HourlyRate);
-                }
-
-                return q.OrderBy(s => s.Id);
-            }
+            _ => q => q.OrderBy(s => s.Id)
         };
-
-        return orderBy;
     }
 
-    public static ExpressionStarter<Space> BuildPredicate(
-        string filter, SpaceType spaceType, decimal? minPrice = null, decimal? maxPrice = null)
+    public static ExpressionStarter<Space> BuildPredicate(SpaceFilterCriteria criteria)
     {
         var predicate = PredicateBuilder.New<Space>(true);
-        predicate = AddCategories();
-        predicate = AddPriceRange();
 
-        if (string.IsNullOrEmpty(filter))
+        if (criteria.SpaceType.HasValue && criteria.SpaceType.Value != SpaceType.None)
         {
-            return predicate;
+            predicate = predicate.And(s => (s.SpaceType & criteria.SpaceType.Value) != SpaceType.None);
         }
 
-        var decodedFilter = System.Net.WebUtility.UrlDecode(filter)?.Trim();
+        if (criteria.MinCapacity.HasValue)
+        {
+            predicate = predicate.And(s => s.Capacity >= criteria.MinCapacity.Value);
+        }
+
+        if (criteria.MaxCapacity.HasValue)
+        {
+            predicate = predicate.And(s => s.Capacity <= criteria.MaxCapacity.Value);
+        }
+
+        if (criteria.MinAreaSqm.HasValue)
+        {
+            predicate = predicate.And(s => s.AreaSqm >= criteria.MinAreaSqm.Value);
+        }
+
+        if (criteria.MaxAreaSqm.HasValue)
+        {
+            predicate = predicate.And(s => s.AreaSqm <= criteria.MaxAreaSqm.Value);
+        }
+
+        if (criteria.MinHourlyRate.HasValue)
+        {
+            predicate = predicate.And(s => s.HourlyRate >= criteria.MinHourlyRate.Value);
+        }
+
+        if (criteria.MaxHourlyRate.HasValue)
+        {
+            predicate = predicate.And(s => s.HourlyRate <= criteria.MaxHourlyRate.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(criteria.City))
+        {
+            predicate = predicate.And(s => s.Address != null && s.Address.City == criteria.City);
+        }
+
+        if (!string.IsNullOrWhiteSpace(criteria.Attributes))
+        {
+            predicate = AddParsedAttributeFilters(predicate, criteria.Attributes!);
+        }
+
+        return predicate;
+    }
+
+    private static ExpressionStarter<Space> AddParsedAttributeFilters(
+        ExpressionStarter<Space> predicate,
+        string rawFilter)
+    {
+        var decodedFilter = WebUtility.UrlDecode(rawFilter)?.Trim();
         if (string.IsNullOrEmpty(decodedFilter))
         {
             return predicate;
         }
 
-        var splitBySemicolons = decodedFilter.Split(";");
-
-        foreach (var str in splitBySemicolons)
+        var segments = decodedFilter.Split(';', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var segment in segments)
         {
-            predicate = AddParsedAttributeValuesFilters(str);
+            var attrPredicate = BuildAttributeFilter(segment);
+            if (attrPredicate != null)
+            {
+                predicate = predicate.And(attrPredicate);
+            }
         }
 
         return predicate;
+    }
 
-        ExpressionStarter<Space> AddCategories()
+    private static Expression<Func<Space, bool>> BuildAttributeFilter(string segment)
+    {
+        var parts = segment.Split(':', 2);
+        if (parts.Length < 2 || !int.TryParse(parts[0].Trim(), out var attrId))
         {
-            if (spaceType != SpaceType.None)
-            {
-                predicate = predicate.And(s => (s.SpaceType & spaceType) != SpaceType.None);
-            }
-
-            return predicate;
+            return null;
         }
 
-        ExpressionStarter<Space> AddPriceRange()
+        var values = parts[1]
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(v => v.Trim())
+            .Where(v => v.Length > 0)
+            .ToList();
+
+        if (values.Count == 0)
         {
-            if (minPrice.HasValue)
-            {
-                predicate = predicate.And(s => s.HourlyRate >= minPrice.Value);
-            }
-
-            if (maxPrice.HasValue)
-            {
-                predicate = predicate.And(s => s.HourlyRate <= maxPrice.Value);
-            }
-
-            return predicate;
+            return null;
         }
 
-        ExpressionStarter<Space> AddParsedAttributeValuesFilters(string str)
-        {
-            var parts = str.Split(':', 2);
-            if (parts.Length < 2 || !int.TryParse(parts[0].Trim(), out int attrId))
-            {
-                return predicate;
-            }
+        var numeric = values.All(v => double.TryParse(
+            v,
+            NumberStyles.Any,
+            CultureInfo.InvariantCulture,
+            out _));
 
-            var values = parts[1]
-                .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(v => v.Trim())
-                .Where(v => v.Length > 0)
-                .ToList();
-
-            if (values.Count == 0)
-            {
-                return predicate;
-            }
-
-            var allNumeric = values.All(v => double.TryParse(
-                v,
-                System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out _));
-
-            var attrFilter = allNumeric
-                ? AddNumericAttribute(attrId, values)
-                : AddStringAttribute(attrId, values);
-
-            predicate = predicate.And(attrFilter);
-
-            return predicate;
-        }
+        return numeric ? AddNumericAttribute(attrId, values) : AddStringAttribute(attrId, values);
     }
 
     private static Expression<Func<Space, bool>> BuildAttributePredicate(int attrId, IEnumerable<string> values)
@@ -135,7 +138,7 @@ public static class AttributeHelper
         var attrEqual = Expression.Equal(attrProp, attrConst);
 
         var valueProp = Expression.Property(avParam, nameof(AttributeValue.Value));
-        Expression orChain = null;
+        Expression? orChain = null;
         foreach (var val in values)
         {
             var valConst = Expression.Constant(val);
@@ -161,14 +164,13 @@ public static class AttributeHelper
         var normalizedValues = new HashSet<string>();
         foreach (var val in values)
         {
-            if (double.TryParse(val, System.Globalization.NumberStyles.Any,
-                    System.Globalization.CultureInfo.InvariantCulture, out double numericVal))
+            if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out var numericVal))
             {
                 normalizedValues.Add(val);
-                normalizedValues.Add(numericVal.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                if (numericVal == Math.Floor(numericVal))
+                normalizedValues.Add(numericVal.ToString(CultureInfo.InvariantCulture));
+                if (Math.Abs(numericVal - Math.Floor(numericVal)) < double.Epsilon)
                 {
-                    normalizedValues.Add(((int)numericVal).ToString());
+                    normalizedValues.Add(((int)numericVal).ToString(CultureInfo.InvariantCulture));
                 }
             }
             else
