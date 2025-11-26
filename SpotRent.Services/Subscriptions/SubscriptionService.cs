@@ -5,9 +5,11 @@ using Npgsql;
 using SpotRent.Domain.Common;
 using SpotRent.Domain.Entities;
 using SpotRent.Domain.Enums;
+using SpotRent.Domain.Extensions;
 using SpotRent.Infrastructure;
 using SpotRent.Services.Interfaces;
 using SpotRent.Services.Logging;
+using SpotRent.Services.Payment;
 
 namespace SpotRent.Services.Subscriptions;
 
@@ -57,7 +59,7 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
                 return Result.Fail<SubscriptionCreationResponse>("Invalid duration");
             }
 
-            var paymentDataResult = await _paymentService.CreatePayment(subscription.Id, subscription.TotalAmount);
+            var paymentDataResult = await _paymentService.CreatePaymentAsync(subscription.Id, subscription.TotalAmount);
             if (paymentDataResult.Failure)
             {
                 return Result.Fail<SubscriptionCreationResponse>($"{paymentDataResult.Error}");
@@ -277,24 +279,42 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
 
     public async Task<Result> CancelSubscriptionAsync(int subscriptionId)
     {
-        throw new NotImplementedException();
-        var subscription = await Context.Subscriptions.FindAsync(subscriptionId);
-        if (subscription == null)
-        {
-            return Result.Fail("No subscription with specified id");
-        }
-
         try
         {
-            Context.Remove(subscription);
+            var subscription = await Context.Subscriptions.FindAsync(subscriptionId);
+            if (subscription is null)
+            {
+                return Result.Fail<LiqPayRefundResponse>($"No subscription with id {subscriptionId}");
+            }
+
+            var stateTransitionNotValid = subscription.Status ==
+                                          (SubscriptionStatus.Cancelled | SubscriptionStatus.Expired);
+            if (stateTransitionNotValid)
+            {
+                return Result.Fail<LiqPayRefundResponse>($"Subscription with id {subscriptionId} can't be cancelled");
+            }
+
+            var result = await _paymentService.RefundPaymentAsync(subscriptionId);
+            result.OnSuccess(() => Serilog.Log.Information("Success refunding payment"))
+                .OnFailure(() => Serilog.Log.Error(result.Error));
+
+            if (result.Value.Result == "error")
+            {
+                return Result.Fail<LiqPayRefundResponse>($"Error refunding: {result.Value.Status}");
+            }
+
+            subscription.Status = SubscriptionStatus.Cancelled;
+            Context.Subscriptions.Update(subscription);
             await Context.SaveChangesAsync();
+
+            return result.Failure
+                ? Result.Fail<LiqPayRefundResponse>($"Payment refund failed. Reason: {result.Error}")
+                : Result.Success(result.Value);
         }
         catch (Exception e)
         {
-            return Result.Fail($"{e.Message}");
+            return Result.Fail<LiqPayRefundResponse>($"Error refunding: {e.Message}");
         }
-
-        return Result.Success();
     }
 
     private DateTime? CalcEndDate(DateTime startDate, Duration duration)

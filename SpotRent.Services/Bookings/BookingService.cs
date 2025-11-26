@@ -6,9 +6,11 @@ using Npgsql;
 using SpotRent.Domain.Common;
 using SpotRent.Domain.Entities;
 using SpotRent.Domain.Enums;
+using SpotRent.Domain.Extensions;
 using SpotRent.Infrastructure;
 using SpotRent.Services.Interfaces;
 using SpotRent.Services.Logging;
+using SpotRent.Services.Payment;
 
 namespace SpotRent.Services.Bookings;
 
@@ -61,7 +63,7 @@ public class BookingService : BaseService<BookingService>, IBookingService
                 return Result.Fail<BookingCreationResponse>("Invalid duration");
             }
 
-            var paymentDataResult = await _paymentService.CreatePayment(booking.Id, booking.TotalAmount);
+            var paymentDataResult = await _paymentService.CreatePaymentAsync(booking.Id, booking.TotalAmount);
             if (paymentDataResult.Failure)
             {
                 return Result.Fail<BookingCreationResponse>($"{paymentDataResult.Error}");
@@ -341,35 +343,44 @@ public class BookingService : BaseService<BookingService>, IBookingService
         }
     }
 
-    public async Task<Result> CancelBookingAsync(int id)
+
+    public async Task<Result> CancelBookingAsync(int bookingId)
     {
         try
         {
-            var booking = await Context.Bookings.FindAsync(id);
-            if (booking == null)
+            var subscription = await Context.Subscriptions.FindAsync(bookingId);
+            if (subscription is null)
             {
-                return Result.Fail("No booking with specified id");
+                return Result.Fail<LiqPayRefundResponse>($"No booking with id {bookingId}");
             }
 
-            Context.Remove(booking);
+            var stateTransitionNotValid = subscription.Status ==
+                                          (SubscriptionStatus.Cancelled | SubscriptionStatus.Expired);
+            if (stateTransitionNotValid)
+            {
+                return Result.Fail<LiqPayRefundResponse>($"Booking with id {bookingId} can't be cancelled");
+            }
+
+            var result = await _paymentService.RefundPaymentAsync(bookingId);
+            result.OnSuccess(() => Serilog.Log.Information("Success refunding payment"))
+                .OnFailure(() => Serilog.Log.Error(result.Error));
+
+            if (result.Value.Result == "error")
+            {
+                return Result.Fail<LiqPayRefundResponse>($"Error refunding: {result.Value.Status}");
+            }
+
+            subscription.Status = SubscriptionStatus.Cancelled;
+            Context.Subscriptions.Update(subscription);
             await Context.SaveChangesAsync();
 
-            return Result.Success();
+            return result.Failure
+                ? Result.Fail<LiqPayRefundResponse>($"Payment refund failed. Reason: {result.Error}")
+                : Result.Success(result.Value);
         }
-        catch (NpgsqlException e)
-        {
-            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
-                "DB error getting booking {bookingId}. Error: {error}", id, e.Message);
-
-            return Result.Fail<Booking>($"DB error: {e.Message}.");
-        }
-
         catch (Exception e)
         {
-            Log(LogLevel.Error, BookingServiceEventIds.GetBookingById,
-                "Error getting booking {userId}. Error: {error}", id, e.Message);
-
-            return Result.Fail<Booking>($"Failure getting booking: {e.Message}");
+            return Result.Fail<LiqPayRefundResponse>($"Error refunding: {e.Message}");
         }
     }
 }

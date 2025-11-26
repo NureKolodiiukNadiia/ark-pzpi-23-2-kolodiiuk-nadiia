@@ -16,7 +16,7 @@ public class PaymentService : BaseService<PaymentService>, IPaymentService
         _liqPayHelper = liqPayHelper;
     }
 
-    public async Task<Result<LiqPayPaymentData>> CreatePayment(int orderId, decimal total)
+    public async Task<Result<LiqPayPaymentData>> CreatePaymentAsync(int id, decimal total)
     {
         try
         {
@@ -24,7 +24,7 @@ public class PaymentService : BaseService<PaymentService>, IPaymentService
                 total,
                 "UAH",
                 "",
-                orderId
+                id
             );
 
             return Result.Success(paymentData);
@@ -35,27 +35,83 @@ public class PaymentService : BaseService<PaymentService>, IPaymentService
         }
     }
 
-    public async Task<Result> UpdatePaymentStatus(int paymentId, long transactionId, string status)
+    public async Task<Result> UpdatePaymentStatusSubscriptionAsync(int subscriptionId, long transactionId, string status)
     {
-        throw new NotImplementedException();
-        // var payment = await Context.Payments.FindAsync(paymentId);
-        // if (payment is not null)
-        // {
-        //     payment.Status = status switch
-        //     {
-        //         "TestPaid" => PaymentStatus.TestPaid,
-        //         "Paid" => PaymentStatus.Paid,
-        //         "Failed" => PaymentStatus.Failed,
-        //         _ => payment.Status
-        //     };
-        //     // payment.TransactionId = transactionId;
-        //     payment.ProcessedAt = DateTime.UtcNow;
-        //
-        //     await Context.SaveChangesAsync();
-        //
-        //     return Result.Success();
-        // }
-        //
-        // return Result.Fail($"No payment {paymentId} is in db");
+        var subscription = await Context.Subscriptions.FindAsync(subscriptionId);
+        if (subscription is not null)
+        {
+            switch (status)
+            {
+                case "TestPaid":
+                    subscription.PaymentStatus = PaymentStatus.TestPaid;
+                    break;
+                case "Paid":
+                    subscription.PaymentStatus = PaymentStatus.Paid;
+                    break;
+                case "Failed":
+                    subscription.PaymentStatus = PaymentStatus.Failed;
+                    subscription.Status = SubscriptionStatus.Cancelled;
+                    break;
+                default:
+                    subscription.PaymentStatus = subscription.PaymentStatus;
+                    break;
+            }
+
+            subscription.TransactionId = transactionId;
+            subscription.PaymentProcessedAt = DateTime.UtcNow;
+
+            await Context.SaveChangesAsync();
+
+            return Result.Success();
+        }
+
+        return Result.Fail($"No payment for {subscriptionId} is in db");
+    }
+
+    public async Task<Result> UpdatePaymentStatusBookingAsync(int bookingId, long transactionId, string status)
+    {
+        var booking = await Context.Bookings.FindAsync(bookingId);
+        if (booking is not null)
+        {
+            switch (status)
+            {
+                case "TestPaid":
+                    booking.PaymentStatus = PaymentStatus.TestPaid;
+                    break;
+                case "Paid":
+                    booking.PaymentStatus = PaymentStatus.Paid;
+                    break;
+                case "Failed":
+                    booking.PaymentStatus = PaymentStatus.Failed;
+                    booking.Status = BookingStatus.Cancelled;
+                    break;
+                default:
+                    booking.PaymentStatus = booking.PaymentStatus;
+                    break;
+            }
+
+            booking.TransactionId = transactionId;
+            booking.PaymentProcessedAt = DateTime.UtcNow;
+
+            await Context.SaveChangesAsync();
+
+            return Result.Success();
+        }
+
+        return Result.Fail($"No payment for {bookingId} is in db");
+    }
+
+    public async Task<Result<LiqPayRefundResponse>> RefundPaymentAsync(int id)
+    {
+        try
+        {
+            var result = await _liqPayHelper.RefundAsync<LiqPayRefundResponse>(id);
+
+            return Result.Success(result);
+        }
+        catch (Exception e)
+        {
+            return Result.Fail<LiqPayRefundResponse>($"Error refunding payment: {e.Message}");
+        }
     }
 }

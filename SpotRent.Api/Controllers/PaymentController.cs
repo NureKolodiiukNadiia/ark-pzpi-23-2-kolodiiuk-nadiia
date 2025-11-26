@@ -43,14 +43,14 @@ public class PaymentController : ControllerBase
                 switch (response.status)
                 {
                     case "success":
-                        await _paymentService.UpdatePaymentStatus(paymentId, response.transaction_id, "Paid");
+                        await _paymentService.UpdatePaymentStatusSubscriptionAsync(paymentId, response.transaction_id, "Paid");
                         break;
                     case "failure":
                     case "error":
-                        await _paymentService.UpdatePaymentStatus(paymentId, response.transaction_id, "Failed");
+                        await _paymentService.UpdatePaymentStatusSubscriptionAsync(paymentId, response.transaction_id, "Failed");
                         break;
                     case "sandbox":
-                        await _paymentService.UpdatePaymentStatus(paymentId, response.transaction_id, "TestPaid");
+                        await _paymentService.UpdatePaymentStatusSubscriptionAsync(paymentId, response.transaction_id, "TestPaid");
                         break;
                 }
             }
