@@ -1,3 +1,4 @@
+using SpotRent.Domain.Common;
 using SpotRent.Domain.Entities;
 using SpotRent.Domain.Enums;
 
@@ -5,13 +6,14 @@ namespace SpotRent.Services.Interfaces;
 
 public interface IAccessLogService
 {
-    Task<IEnumerable<AccessLog>> GetUserAccessLogsAsync(int userId);
+    Task<Result<AccessLog>> LogAccessAsync(int userId, string deviceId, AccessType accessType, int? bookingId = null,
+        bool isSuccessful = true, string errorMessage = null);
 
-    Task<IEnumerable<AccessLog>> GetDeviceAccessLogsAsync(string deviceId);
+    Task<Result<IEnumerable<AccessLog>>> GetSpaceAccessLogsAsync(string deviceId);
 
-    Task<IEnumerable<AccessLog>> GetAccessLogsByDateRangeAsync(DateTime startDate, DateTime endDate);
+    Task<Result<IEnumerable<AccessLog>>> GetOwnerAccessLogsAsync(int ownerId);
 
-    Task<AccessLog> LogAccessAsync(int userId, string deviceId, AccessType accessType, int? bookingId = null, bool isSuccessful = true, string errorMessage = null);
+    Task<Result<IEnumerable<AccessLog>>> GetUserAccessLogsAsync(int userId);
 
-    Task<bool> ValidateAccessAsync(int userId, string deviceId);
+    Task<Result<AccessLog>> GetLogById(int id);
 }
