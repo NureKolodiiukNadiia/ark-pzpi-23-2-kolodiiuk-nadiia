@@ -26,6 +26,8 @@ public class SpacesController : BaseController<SpacesController>
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpPost]
+    [EndpointSummary("Creates a new space listing.")]
+    [EndpointDescription("Validates the provided space payload, maps it to a domain entity, and persists the new space.")]
     public async Task<IActionResult> CreateSpace(CreateSpaceDto spaceDto)
     {
         Log(LogLevel.Information, SpacesControllerEventIds.CreateSpaceAttempt,
@@ -57,6 +59,8 @@ public class SpacesController : BaseController<SpacesController>
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpGet]
+    [EndpointSummary("Retrieves spaces with filtering and pagination.")]
+    [EndpointDescription("Supports filtering by attributes such as type, capacity, rates, and city while honoring pagination and sorting parameters.")]
     public async Task<IActionResult> GetSpaces(
         [FromQuery(Name = "spaceType")] SpaceType? spaceType,
         [FromQuery(Name = "minCapacity")] int? minCapacity,
@@ -149,6 +153,8 @@ public class SpacesController : BaseController<SpacesController>
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpGet("{id:int}")]
+    [EndpointSummary("Gets a single space by identifier.")]
+    [EndpointDescription("Validates the space ID, loads the space with related data, and returns it or appropriate status when missing.")]
     public async Task<IActionResult> GetSpace(int id)
     {
         Log(LogLevel.Information, SpacesControllerEventIds.GetSpaceAttempt,
@@ -187,6 +193,8 @@ public class SpacesController : BaseController<SpacesController>
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [EndpointSummary("Lists available spaces for a time range in a city.")]
+    [EndpointDescription("Checks the requested city and dates, queries availability, and returns spaces free during the specified interval.")]
     public async Task<IActionResult> GetAvailableSpaces(
         [FromQuery] DateTime startTime,
         [FromQuery] DateTime endTime,
@@ -226,6 +234,8 @@ public class SpacesController : BaseController<SpacesController>
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpGet("{id:int}/schedule")]
+    [EndpointSummary("Retrieves the booking schedule for a space.")]
+    [EndpointDescription("Validates identifiers and date range, then returns the calendar of bookings for the requested space.")]
     public async Task<IActionResult> GetSpaceSchedule(int id, [FromQuery] DateTime? startDate,
         [FromQuery] DateTime? endDate)
     {
@@ -274,6 +284,8 @@ public class SpacesController : BaseController<SpacesController>
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpPut("{id:int}")]
+    [EndpointSummary("Updates an existing space.")]
+    [EndpointDescription("Accepts the edited space details, validates identifiers, and updates the stored space record.")]
     public async Task<IActionResult> UpdateSpace(int id, UpdateSpaceDto spaceDto)
     {
         Log(LogLevel.Information, SpacesControllerEventIds.UpdateSpaceAttempt,
@@ -314,6 +326,8 @@ public class SpacesController : BaseController<SpacesController>
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpDelete("{id:int}")]
+    [EndpointSummary("Deletes a space listing.")]
+    [EndpointDescription("Validates the provided space identifier and removes the associated space if it exists.")]
     public async Task<IActionResult> DeleteSpace(int id)
     {
         Log(LogLevel.Information, SpacesControllerEventIds.DeleteSpaceAttempt,

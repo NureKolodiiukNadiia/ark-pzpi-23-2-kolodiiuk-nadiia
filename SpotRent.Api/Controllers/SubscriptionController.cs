@@ -22,6 +22,8 @@ public class SubscriptionController : BaseController<SubscriptionController>
 
     // [Authorize(Roles = "User")]
     [HttpPost]
+    [EndpointSummary("Creates a subscription for a user.")]
+    [EndpointDescription("Validates the subscription payload and subscribes the specified user to the requested plan.")]
     public async Task<ActionResult> CreateSubscriptionAsync([FromBody] CreateSubscriptionDto subscriptionDto)
     {
         if (!subscriptionDto.IsValid())
@@ -51,6 +53,8 @@ public class SubscriptionController : BaseController<SubscriptionController>
     }
 
     [HttpGet("{id:int}")]
+    [EndpointSummary("Gets subscription details by identifier.")]
+    [EndpointDescription("Validates the subscription ID and returns the mapped subscription information.")]
     public async Task<ActionResult<Subscription>> GetSubscriptionByIdAsync(int id)
     {
         if (id < 1)
@@ -78,6 +82,8 @@ public class SubscriptionController : BaseController<SubscriptionController>
     }
 
     [HttpGet("history/{userId:int}")]
+    [EndpointSummary("Retrieves the subscription history for a user.")]
+    [EndpointDescription("Validates the user identifier and fetches all past subscriptions associated with the user.")]
     public async Task<IActionResult> GetSubscriptionHistory(int userId)
     {
         if (userId < 1)
@@ -107,6 +113,8 @@ public class SubscriptionController : BaseController<SubscriptionController>
 
     // [Authorize(Roles = "User")]
     [HttpGet("me/{userId:int}")]
+    [EndpointSummary("Gets the current subscription for a user.")]
+    [EndpointDescription("Fetches the active subscription of the specified user after validating the identifier.")]
     public async Task<ActionResult> GetMySubscriptionAsync(int userId)
     {
         if (userId < 1)
@@ -136,6 +144,8 @@ public class SubscriptionController : BaseController<SubscriptionController>
 
     // [Authorize(Roles = "User")]
     [HttpPut("{subscriptionId:int}/change")]
+    [EndpointSummary("Changes an existing subscription to a new plan.")]
+    [EndpointDescription("Validates both identifiers and instructs the service to move the subscription to the provided plan.")]
     public async Task<ActionResult> ChangeSubscriptionAsync(int subscriptionId, int newPlanId)
     {
         if (subscriptionId < 1 || newPlanId < 1)
@@ -166,6 +176,8 @@ public class SubscriptionController : BaseController<SubscriptionController>
 
     // [Authorize(Roles = "User")]
     [HttpPut("{userId:int}/{subscriptionId:int}/cancel")]
+    [EndpointSummary("Cancels a subscription for a user.")]
+    [EndpointDescription("Validates user and subscription IDs, then cancels the subscription resource if valid.")]
     public async Task<ActionResult> CancelSubscriptionAsync(int userId, int subscriptionId)
     {
         if (subscriptionId < 1 || userId < 1)

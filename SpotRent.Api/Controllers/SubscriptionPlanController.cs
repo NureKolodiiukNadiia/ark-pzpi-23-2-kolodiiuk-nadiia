@@ -23,6 +23,8 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
 
     // [Authorize(Roles = "Admin")]
     [HttpPost]
+    [EndpointSummary("Creates a new subscription plan.")]
+    [EndpointDescription("Validates the incoming plan payload and persists it as a subscription plan definition.")]
     public async Task<ActionResult> CreateSubscriptionPlanAsync([FromBody] CreateSubscriptionPlanDto subscriptionDto)
     {
         var result = await _subscriptionPlanService.CreateSubscriptionPlanAsync(subscriptionDto);
@@ -35,6 +37,8 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
     }
 
     [HttpGet]
+    [EndpointSummary("Lists all subscription plans.")]
+    [EndpointDescription("Retrieves every subscription plan and wraps it inside a data object for the response.")]
     public async Task<IActionResult> GetPlansAsync()
     {
         var result = await _subscriptionPlanService.GetPlansAsync();
@@ -47,6 +51,8 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
     }
     
     [HttpGet("{id:int}")]
+    [EndpointSummary("Gets a subscription plan by id.")]
+    [EndpointDescription("Fetches the plan details for the provided identifier or returns an error if unavailable.")]
     public async Task<IActionResult> GetPlanByIdAsync(int id)
     {
         var result = await _subscriptionPlanService.GetPlanByIdAsync(id);
@@ -60,6 +66,8 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
 
     // [Authorize(Roles = "Admin")]
     [HttpPut("{id:int}")]
+    [EndpointSummary("Updates an existing subscription plan.")]
+    [EndpointDescription("Logs the update attempt, validates payload data, and updates the specified subscription plan.")]
     public async Task<ActionResult> UpdateSubscriptionPlanAsync(int id, [FromBody] UpdateSubscriptionPlanDto subscriptionPlanDto)
     {
         if (id < 1 || subscriptionPlanDto is null)
@@ -100,6 +108,8 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
 
     // [Authorize(Roles = "Admin")]
     [HttpDelete("{subscriptionPlanId:int}")]
+    [EndpointSummary("Deletes a subscription plan.")]
+    [EndpointDescription("Validates the identifier, logs the outcome, and removes the subscription plan if possible.")]
     public async Task<IActionResult> DeleteSubscriptionPlanAsync(int subscriptionPlanId)
     {
         if (subscriptionPlanId < 1)
@@ -140,6 +150,8 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
 
     // [Authorize(Roles = "Admin")]
     [HttpPut("deactivate/{subscriptionPlanId:int}")]
+    [EndpointSummary("Deactivates a subscription plan.")]
+    [EndpointDescription("Attempts to deactivate the specified plan while logging success or failure details.")]
     public async Task<IActionResult> DeactivateSubscriptionPlanAsync(int subscriptionPlanId)
     {
         if (subscriptionPlanId < 1)
@@ -178,4 +190,3 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
             : StatusCode(StatusCodes.Status200OK);
     }
 }
-
