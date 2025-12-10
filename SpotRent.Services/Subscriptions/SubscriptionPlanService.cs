@@ -91,7 +91,7 @@ public class SubscriptionPlanService : BaseService<SubscriptionPlanService>, ISu
         }
     }
 
-    public async Task<Result> CreateSubscriptionPlanAsync(CreateSubscriptionPlanDto subscriptionPlanDto)
+    public async Task<Result> CreateSubscriptionPlanAsync(int ownerId, CreateSubscriptionPlanDto subscriptionPlanDto)
     {
         try
         {
@@ -103,6 +103,7 @@ public class SubscriptionPlanService : BaseService<SubscriptionPlanService>, ISu
                 Duration = subscriptionPlanDto.Duration,
                 IncludedHours = subscriptionPlanDto.IncludedHours,
                 IsActive = true,
+                OwnerId = ownerId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -128,7 +129,10 @@ public class SubscriptionPlanService : BaseService<SubscriptionPlanService>, ISu
         }
     }
 
-    public async Task<Result> UpdateSubscriptionPlanAsync(int id, UpdateSubscriptionPlanDto subscriptionPlanDto)
+    public async Task<Result> UpdateSubscriptionPlanAsync(
+        int id,
+        UpdateSubscriptionPlanDto subscriptionPlanDto,
+        int ownerId)
     {
         try
         {

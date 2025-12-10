@@ -27,6 +27,8 @@ public class User : IdentityUser<int>
 
     public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
 
+    public ICollection<SubscriptionPlan> SubscriptionPlans { get; set; } = new List<SubscriptionPlan>();
+
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 
     public ICollection<AccessLog> AccessLogs { get; set; } = new List<AccessLog>();

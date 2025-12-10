@@ -33,6 +33,8 @@ public class SubscriptionConfiguration : IEntityTypeConfiguration<Subscription>
             .IsRequired()
             .HasDefaultValue(0);
 
+        builder.Property(s => s.TransactionId);
+
         builder.Property(s => s.CreatedAt)
             .HasColumnType("timestamp with time zone")
             .HasDefaultValueSql("CURRENT_TIMESTAMP");

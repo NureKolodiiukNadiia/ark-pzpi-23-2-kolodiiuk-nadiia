@@ -107,7 +107,7 @@ public class AuthController : BaseController<AuthController>
         {
             Email = registerRequest.Email,
             NormalizedEmail = registerRequest.Email.ToUpper(),
-            Role = Role.Admin,
+            Role = Role.User,
         };
 
         var result = await _authService.RegisterAsync(user, registerRequest.Password,
@@ -313,11 +313,54 @@ public class AuthController : BaseController<AuthController>
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [HttpPost("create_admin")]
+    [HttpPost("create-admin")]
     [Authorize(Roles = "Admin")]
     [EndpointSummary("Creates a new administrator account.")]
-    [EndpointDescription("Accepts registration data from an admin user and provisions another admin with the supplied credentials.")]
+    [EndpointDescription("Accepts registration data from an admin user.")]
     public async Task<IActionResult> CreateAdminAsync(RegisterRequest registerRequest)
+    {
+        Log(LogLevel.Information, AuthControllerEventIds.CreateAdminAttempt,
+            "Admin creation attempt for email: {Email}", registerRequest?.Email);
+
+        if (registerRequest == null)
+        {
+            Log(LogLevel.Warning, AuthControllerEventIds.CreateAdminInvalidNull,
+                "Invalid admin creation data: request is null");
+            return BadRequest(new ProblemDetails() { Title = "Invalid register data" });
+        }
+
+        var user = new User
+        {
+            Email = registerRequest.Email,
+            NormalizedEmail = registerRequest.Email.ToUpper(),
+            Role = Role.Admin,
+        };
+
+        var result = await _authService.RegisterAsync(user, registerRequest.Password,
+            registerRequest.PhoneNumber, registerRequest.FirstName, registerRequest.LastName);
+        result.OnFailure(() =>
+                Log(LogLevel.Error, AuthControllerEventIds.CreateAdminFailed,
+                    "Admin creation failed for email: {Email}. Error: {Error}",
+                    registerRequest.Email, result.Error))
+            .OnSuccess(() =>
+                Log(LogLevel.Information, AuthControllerEventIds.CreateAdminSuccess,
+                    "Successfully created admin with email: {Email}", registerRequest.Email));
+        if (result.Failure)
+        {
+            return StatusCode(500, result.Error);
+        }
+
+        return Ok();
+    }
+
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [HttpPost("create-owner")]
+    [Authorize(Roles = "Admin")]
+    [EndpointSummary("Creates a new owner account.")]
+    [EndpointDescription("Accepts registration data from an owner user.")]
+    public async Task<IActionResult> CreateOwnerAsync(RegisterRequest registerRequest)
     {
         Log(LogLevel.Information, AuthControllerEventIds.CreateAdminAttempt,
             "Admin creation attempt for email: {Email}", registerRequest?.Email);

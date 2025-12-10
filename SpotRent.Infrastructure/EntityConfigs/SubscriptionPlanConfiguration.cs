@@ -32,6 +32,9 @@ public class SubscriptionPlanConfiguration : IEntityTypeConfiguration<Subscripti
             .IsRequired()
             .HasDefaultValue(true);
 
+        builder.Property(sp => sp.OwnerId)
+            .HasDefaultValue(null);
+
         builder.Property(sp => sp.CreatedAt)
             .HasColumnType("timestamp with time zone")
             .IsRequired()
@@ -44,5 +47,10 @@ public class SubscriptionPlanConfiguration : IEntityTypeConfiguration<Subscripti
             .WithOne(s => s.SubscriptionPlan)
             .HasForeignKey(s => s.SubscriptionPlanId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(sp => sp.Owner)
+            .WithMany(u => u.SubscriptionPlans)
+            .HasForeignKey(sp => sp.OwnerId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

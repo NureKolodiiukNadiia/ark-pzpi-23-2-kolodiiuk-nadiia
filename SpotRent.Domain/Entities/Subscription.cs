@@ -24,7 +24,7 @@ public class Subscription
 
     public PaymentStatus PaymentStatus { get; set; }
 
-    public long TransactionId { get; set; }
+    public long? TransactionId { get; set; }
 
     public DateTime? PaymentProcessedAt { get; set; }
 

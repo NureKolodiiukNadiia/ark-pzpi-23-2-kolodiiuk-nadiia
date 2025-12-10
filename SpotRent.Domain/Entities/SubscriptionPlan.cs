@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using SpotRent.Domain.Enums;
 
 namespace SpotRent.Domain.Entities;
@@ -20,9 +18,13 @@ public class SubscriptionPlan
 
     public bool IsActive { get; set; }
 
+    public int? OwnerId { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; }
+
+    public User Owner { get; set; }
 
     public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
 }
