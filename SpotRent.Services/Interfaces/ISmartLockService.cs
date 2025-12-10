@@ -4,15 +4,13 @@ namespace SpotRent.Services.Interfaces;
 
 public interface ISmartLockService
 {
-    Task<Result> RegisterDeviceAsync(int deviceId);
+    Task<Result> RegisterDeviceAsync(int spaceId);
 
-    Task<Result> UpdateDeviceStatusAsync(int deviceId);
+    Task<Result> UpdateDeviceStatusAsync(int deviceId, bool isOnline, string statusMessage);
 
-    Task<Result> UnlockAsync(int userId, string deviceId, string qrCode);
+    Task<Result<bool>> UnlockAsync(int userId, int deviceId, string qrCode);
 
-    Task<Result> ConfirmUnlockAsync(int deviceId);
+    Task<Result<bool>> UnlockOwnerAsync(int userId, int deviceId, string qrCode);
 
-    Task<Result> ReportFailedUnlockAttemptAsync(int deviceId, string reason);
-
-    Task<Result<bool>> ValidateAccessAsync(int userId, string deviceId);
+    Task<Result> LockAsync(int deviceId);
 }
