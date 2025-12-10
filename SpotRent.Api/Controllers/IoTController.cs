@@ -5,7 +5,7 @@ using SpotRent.Services.Interfaces;
 namespace SpotRent.Api.Controllers;
 
 [ApiController]
-[Route("api/iot")]
+[Route("api/[controller]")]
 public class IoTController : BaseController<IoTController>
 {
     private readonly ISmartLockService _smartLockService;
@@ -22,11 +22,10 @@ public class IoTController : BaseController<IoTController>
         _qrScannerService = qrScannerService;
     }
 
-    [HttpPost("handshake")]
-    public async Task<IActionResult> Handshake(HandshakeRequest req)
+    [HttpPost("register")]
+    public async Task<IActionResult> RegisterDevice(DeviceRegistrationRequest request)
     {
         return StatusCode(418);
-        //device registration
     }
 
     [HttpPost("device-status")]
@@ -41,16 +40,10 @@ public class IoTController : BaseController<IoTController>
         return StatusCode(418);
     }
 
-    [HttpPost("confirm")]
-    public async Task<IActionResult> ConfirmUnlock(int deviceId)
+    [HttpPost("lock/{deviceId:int}")]
+    public async Task<IActionResult> Lock(int deviceId)
     {
         return StatusCode(418);
         // successful unlock
-    }
-
-    [HttpPost("fail")]
-    public async Task<IActionResult> ReportFailedAttempt(int deviceId, string reason)
-    {
-        return StatusCode(418);
     }
 }

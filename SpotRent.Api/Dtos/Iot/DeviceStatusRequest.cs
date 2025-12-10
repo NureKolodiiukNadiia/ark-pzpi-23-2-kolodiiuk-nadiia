@@ -6,5 +6,5 @@ public class DeviceStatusRequest
 
     public bool IsOnline { get; set; }
 
-    public string? StatusMessage { get; set; }
+    public string StatusMessage { get; set; }
 }
