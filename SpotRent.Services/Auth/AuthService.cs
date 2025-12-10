@@ -44,22 +44,30 @@ public class AuthService : IAuthService
         user.FirstName = firstName;
         user.LastName = lastName;
 
-        var result = await _userManager.CreateAsync(user, password);
-        if (!result.Succeeded)
+        try
         {
-            return Result.Fail($"Failed to create a user: {string.Join(", ",
-                result.Errors.Select(e => e.Description))}");
-        }
+            var result = await _userManager.CreateAsync(user, password);
+            if (!result.Succeeded)
+            {
+                return Result.Fail($"Failed to create a user: {string.Join(", ",
+                    result.Errors.Select(e => e.Description))}");
+            }
 
-        var roleResult = await _userManager.AddToRoleAsync(user, user.Role.ToString());
-        if (!roleResult.Succeeded)
+            var roleResult = await _userManager.AddToRoleAsync(user, user.Role.ToString());
+            if (!roleResult.Succeeded)
+            {
+                return Result.Fail(
+                    $"Failed to assign role: {string.Join(", ",
+                        roleResult.Errors.Select(e => e.Description))}");
+            }
+
+            return Result.Success();
+        }
+        catch (Exception e)
         {
-            return Result.Fail(
-                $"Failed to assign role: {string.Join(", ",
-                    roleResult.Errors.Select(e => e.Description))}");
+            Console.WriteLine(e);
+            throw;
         }
-
-        return Result.Success();
     }
 
     public async Task<Result<User>> ValidateUserCredentials(string email, string password)

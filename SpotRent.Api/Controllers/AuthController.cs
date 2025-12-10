@@ -30,6 +30,8 @@ public class AuthController : BaseController<AuthController>
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [HttpPost("google")]
+    [EndpointSummary("Signs in a user via Google authentication.")]
+    [EndpointDescription("Validates the Google ID token, creates or retrieves the SpotRent user, and issues JWT plus refresh tokens.")]
     public async Task<ActionResult<LoginResponse>> GoogleSignIn([FromBody] GoogleSignInRequest request)
     {
         Log(LogLevel.Information, AuthControllerEventIds.GoogleSignInAttempt, "Google sign-in attempt");
@@ -80,6 +82,8 @@ public class AuthController : BaseController<AuthController>
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [HttpPost("register")]
+    [EndpointSummary("Registers a new SpotRent user account.")]
+    [EndpointDescription("Validates the incoming registration payload and creates an admin user with the provided credentials.")]
     public async Task<IActionResult> Register(RegisterRequest registerRequest)
     {
         Log(LogLevel.Information, AuthControllerEventIds.RegisterAttempt,
@@ -103,7 +107,7 @@ public class AuthController : BaseController<AuthController>
         {
             Email = registerRequest.Email,
             NormalizedEmail = registerRequest.Email.ToUpper(),
-            Role = Role.Admin,
+            Role = Role.User,
         };
 
         var result = await _authService.RegisterAsync(user, registerRequest.Password,
@@ -126,6 +130,8 @@ public class AuthController : BaseController<AuthController>
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [HttpPost("login")]
+    [EndpointSummary("Authenticates a user with email and password.")]
+    [EndpointDescription("Validates user credentials and returns access plus refresh tokens for the account.")]
     public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
     {
         Log(LogLevel.Information, AuthControllerEventIds.LoginAttempt,
@@ -175,6 +181,8 @@ public class AuthController : BaseController<AuthController>
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [HttpPost("refresh")]
+    [EndpointSummary("Refreshes an access token using a refresh token.")]
+    [EndpointDescription("Validates the supplied refresh token, regenerates JWT credentials, and returns updated token metadata.")]
     public async Task<ActionResult<LoginResponse>> Refresh([FromBody] RefreshTokenRequest request)
     {
         Log(LogLevel.Information, AuthControllerEventIds.TokenRefreshAttempt, "Token refresh attempt");
@@ -219,6 +227,8 @@ public class AuthController : BaseController<AuthController>
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [HttpPost("logout")]
+    [EndpointSummary("Logs out a user by revoking the refresh token.")]
+    [EndpointDescription("Ensures a refresh token is provided and invalidates it to end the user session.")]
     public async Task<IActionResult> Logout([FromBody] LogoutDto request)
     {
         Log(LogLevel.Information, AuthControllerEventIds.LogoutAttempt, "Logout attempt");
@@ -249,6 +259,8 @@ public class AuthController : BaseController<AuthController>
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [HttpPost("verify")]
     [Authorize(Roles = "User, Admin")]
+    [EndpointSummary("Verifies the caller's JWT and returns profile data.")]
+    [EndpointDescription("Reads the user identifier from claims, loads the user entity, and confirms the token is still valid.")]
     public async Task<ActionResult<UserDto>> VerifyToken()
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -301,9 +313,54 @@ public class AuthController : BaseController<AuthController>
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [HttpPost("create_admin")]
+    [HttpPost("create-admin")]
     [Authorize(Roles = "Admin")]
+    [EndpointSummary("Creates a new administrator account.")]
+    [EndpointDescription("Accepts registration data from an admin user.")]
     public async Task<IActionResult> CreateAdminAsync(RegisterRequest registerRequest)
+    {
+        Log(LogLevel.Information, AuthControllerEventIds.CreateAdminAttempt,
+            "Admin creation attempt for email: {Email}", registerRequest?.Email);
+
+        if (registerRequest == null)
+        {
+            Log(LogLevel.Warning, AuthControllerEventIds.CreateAdminInvalidNull,
+                "Invalid admin creation data: request is null");
+            return BadRequest(new ProblemDetails() { Title = "Invalid register data" });
+        }
+
+        var user = new User
+        {
+            Email = registerRequest.Email,
+            NormalizedEmail = registerRequest.Email.ToUpper(),
+            Role = Role.Admin,
+        };
+
+        var result = await _authService.RegisterAsync(user, registerRequest.Password,
+            registerRequest.PhoneNumber, registerRequest.FirstName, registerRequest.LastName);
+        result.OnFailure(() =>
+                Log(LogLevel.Error, AuthControllerEventIds.CreateAdminFailed,
+                    "Admin creation failed for email: {Email}. Error: {Error}",
+                    registerRequest.Email, result.Error))
+            .OnSuccess(() =>
+                Log(LogLevel.Information, AuthControllerEventIds.CreateAdminSuccess,
+                    "Successfully created admin with email: {Email}", registerRequest.Email));
+        if (result.Failure)
+        {
+            return StatusCode(500, result.Error);
+        }
+
+        return Ok();
+    }
+
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [HttpPost("create-owner")]
+    [Authorize(Roles = "Admin")]
+    [EndpointSummary("Creates a new owner account.")]
+    [EndpointDescription("Accepts registration data from an owner user.")]
+    public async Task<IActionResult> CreateOwnerAsync(RegisterRequest registerRequest)
     {
         Log(LogLevel.Information, AuthControllerEventIds.CreateAdminAttempt,
             "Admin creation attempt for email: {Email}", registerRequest?.Email);

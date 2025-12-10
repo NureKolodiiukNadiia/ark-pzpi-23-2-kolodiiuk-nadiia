@@ -10,9 +10,9 @@ public interface ISubscriptionPlanService
 
     Task<Result<SubscriptionPlanDto>> GetPlanByIdAsync(int id);
 
-    Task<Result> CreateSubscriptionPlanAsync(CreateSubscriptionPlanDto subscriptionPlanDto);
+    Task<Result> CreateSubscriptionPlanAsync(int ownerId, CreateSubscriptionPlanDto subscriptionPlanDto);
 
-    Task<Result> UpdateSubscriptionPlanAsync(int id, UpdateSubscriptionPlanDto subscriptionPlanDto);
+    Task<Result> UpdateSubscriptionPlanAsync(int id, UpdateSubscriptionPlanDto subscriptionPlanDto, int ownerId);
 
     Task<Result> DeactivateSubscriptionPlanAsync(int subscriptionPlanId);
 

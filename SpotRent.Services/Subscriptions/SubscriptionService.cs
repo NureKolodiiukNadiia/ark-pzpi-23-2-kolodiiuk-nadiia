@@ -243,12 +243,18 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
         }
     }
 
-    public async Task<Result> ChangeSubscriptionAsync(int currSubscriptionId, int newPlanId)
+    public async Task<Result> ChangeSubscriptionAsync(int currSubscriptionId, int newPlanId, int userId)
     {
         try
         {
+            var user = await Context.Users.FindAsync(userId);
+            if (user is null)
+            {
+                return Result.Fail($"No user with id {userId}");
+            }
+
             var subscription = await Context.Subscriptions.FindAsync(currSubscriptionId);
-            if (subscription is null)
+            if (subscription is null || subscription.UserId != userId)
             {
                 return Result.Fail($"No subscription with id {currSubscriptionId}");
             }
@@ -277,14 +283,21 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
         }
     }
 
-    public async Task<Result> CancelSubscriptionAsync(int subscriptionId)
+    public async Task<Result> CancelSubscriptionAsync(int subscriptionId, int userId)
     {
         try
         {
-            var subscription = await Context.Subscriptions.FindAsync(subscriptionId);
-            if (subscription is null)
+            var user = await Context.Users.FindAsync(userId);
+            if (user is null)
             {
-                return Result.Fail<LiqPayRefundResponse>($"No subscription with id {subscriptionId}");
+                return Result.Fail($"No user with id {userId}");
+            }
+
+            var subscription = await Context.Subscriptions.FindAsync(subscriptionId);
+            if (subscription is null || subscription.UserId != userId)
+            {
+                return Result.Fail<LiqPayRefundResponse>(
+                    $"No subscription with id {subscriptionId} of the user {userId}");
             }
 
             var stateTransitionNotValid = subscription.Status ==

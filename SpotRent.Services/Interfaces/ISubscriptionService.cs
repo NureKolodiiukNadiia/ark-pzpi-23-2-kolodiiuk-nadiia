@@ -14,7 +14,7 @@ public interface ISubscriptionService
 
     Task<Result<Subscription>> GetSubscriptionByIdAsync(int id);
 
-    Task<Result> ChangeSubscriptionAsync(int currSubscriptionId, int newPlanId);
+    Task<Result> ChangeSubscriptionAsync(int currSubscriptionId, int newPlanId, int userId);
 
-    Task<Result> CancelSubscriptionAsync(int subscriptionId);
+    Task<Result> CancelSubscriptionAsync(int subscriptionId, int userId);
 }

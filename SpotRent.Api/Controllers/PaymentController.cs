@@ -27,16 +27,12 @@ public class PaymentController : ControllerBase
     {
         try
         {
-            Debug.WriteLine("---------------------------------");
-            Debug.WriteLine(callback.data);
-            Debug.WriteLine(callback.signature);
             if (!_liqPayHelper.VerifyCallback(callback.data, callback.signature))
             {
                 return BadRequest("Invalid signature");
             }
 
             var response = _liqPayHelper.DecodeData<LiqPayResponse>(callback.data);
-            Debug.WriteLine(response.ToString());
             var parseResult = int.TryParse(response.order_id, out var paymentId);
             if (parseResult)
             {
