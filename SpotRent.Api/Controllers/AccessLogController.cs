@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SpotRent.Api.Dtos.Iot;
+using SpotRent.Api.Logging;
+using SpotRent.Domain.Extensions;
 using SpotRent.Services.Interfaces;
 
 namespace SpotRent.Api.Controllers;
@@ -17,54 +19,235 @@ public class AccessLogController : BaseController<AccessLogController>
         _accessLogService = accessLogService;
     }
 
-    [Authorize(Roles="User")]
+    [Authorize(Roles = "User")]
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [EndpointSummary("Create access log entry")]
+    [EndpointDescription("Creates an access log entry for a user device access attempt. Returns created id on success.")]
     public async Task<IActionResult> CreateLogEntry(LogAccessRequest request)
     {
-        return StatusCode(418);
-        /*
-         if (!ModelState.IsValid)
+        Log(LogLevel.Information, AccessLogControllerEventIds.CreateAccessLogAttempt,
+            "Access log creation attempt");
 
-            return BadRequest(ModelState);
+        if (request is null || request.UserId < 1 || request.DeviceId < 1 ||
+            request.BookingId.HasValue && request.BookingId.Value > 0)
+        {
+            Log(LogLevel.Warning, AccessLogControllerEventIds.CreateAccessLogInvalid,
+                "Access log payload contains invalid identifiers");
 
-        var accessLog = await _accessLogService.LogAccessAsync(
+            return StatusCode(StatusCodes.Status400BadRequest, "Request payload is not valid");
+        }
+
+        var result = await _accessLogService.LogAccessAsync(
             request.UserId,
             request.DeviceId,
             request.AccessType,
-            request.BookingId,
+            request.BookingId.Value,
             request.IsSuccessful,
-            request.ErrorMessage
-        );
+            request.ErrorMessage);
 
-        return Ok(new { Id = accessLog.Id, Timestamp = accessLog.Timestamp });
-        */
+        result.OnSuccess(() =>
+                Log(LogLevel.Information, AccessLogControllerEventIds.CreateAccessLogSuccess,
+                    "Access log entry created with id {AccessLogId}", result.Value))
+            .OnFailure(() =>
+                Log(LogLevel.Error, AccessLogControllerEventIds.CreateAccessLogFailure,
+                    "Failed to create access log entry for user {UserId}, device {DeviceId}. Error: {Error}",
+                    request.UserId, request.DeviceId, result.Error));
+
+        return result.Failure
+            ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
+            : StatusCode(StatusCodes.Status201Created, new { Id = result.Value });
     }
 
-    [Authorize(Roles="Owner")]
+    [Authorize("Owner")]
+    [HttpPost("owner")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [EndpointSummary("Create owner access log entry")]
+    [EndpointDescription("Creates an access log entry initiated by an owner. Returns created id on success.")]
+    public async Task<IActionResult> CreateOwnerLogEntry(LogAccessRequest request)
+    {
+        Log(LogLevel.Information, AccessLogControllerEventIds.CreateAccessLogAttemptOwner,
+            "Access log creation attempt by owner");
+
+        if (request is null || request.UserId < 1 || request.DeviceId < 1)
+        {
+            Log(LogLevel.Warning, AccessLogControllerEventIds.CreateAccessLogInvalid,
+                "Access log payload contains invalid identifiers");
+
+            return StatusCode(StatusCodes.Status400BadRequest, "Request payload is not valid");
+        }
+
+        var result = await _accessLogService.LogOwnerAccessAsync(
+            request.UserId,
+            request.DeviceId,
+            request.AccessType,
+            request.IsSuccessful,
+            request.ErrorMessage);
+
+        result.OnSuccess(() =>
+                Log(LogLevel.Information, AccessLogControllerEventIds.CreateAccessLogSuccess,
+                    "Access log entry created with id {AccessLogId}", result.Value))
+            .OnFailure(() =>
+                Log(LogLevel.Error, AccessLogControllerEventIds.CreateAccessLogFailure,
+                    "Failed to create access log entry for user {UserId}, device {DeviceId}. Error: {Error}",
+                    request.UserId, request.DeviceId, result.Error));
+
+        return result.Failure
+            ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
+            : StatusCode(StatusCodes.Status201Created, new { Id = result.Value });
+    }
+
+    [Authorize(Roles = "Owner")]
     [HttpGet("space/{spaceId:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [EndpointSummary("Get space access logs")]
+    [EndpointDescription("Retrieves access logs for a specific space.")]
     public async Task<IActionResult> GetSpaceLogs(int spaceId)
     {
-        return StatusCode(418);
+        Log(LogLevel.Information, AccessLogControllerEventIds.GetSpaceLogsAttempt,
+            "Get space logs attempt for space {SpaceId}", spaceId);
+
+        if (spaceId < 1)
+        {
+            Log(LogLevel.Warning, AccessLogControllerEventIds.GetSpaceLogsInvalid,
+                "Space identifier is not valid");
+
+            return StatusCode(StatusCodes.Status400BadRequest, "Space id is not valid");
+        }
+
+        var result = await _accessLogService.GetSpaceAccessLogsAsync(spaceId);
+        result.OnSuccess(() =>
+                Log(LogLevel.Information, AccessLogControllerEventIds.GetSpaceLogsSuccess,
+                    "Retrieved space access logs for space {SpaceId}", spaceId))
+            .OnFailure(() =>
+                Log(LogLevel.Error, AccessLogControllerEventIds.GetSpaceLogsFailure,
+                    "Failed to retrieve space access logs for space {SpaceId}. Error: {Error}",
+                    spaceId, result.Error));
+
+        return result.Failure
+            ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
+            : StatusCode(StatusCodes.Status200OK, result.Value);
     }
 
-    [Authorize(Roles="Owner")]
-    [HttpGet("owner/{spaceId:int}")]
+    [Authorize(Roles = "Owner")]
+    [HttpGet("owner/{ownerId:int}")]
     public async Task<IActionResult> GetOwnerLogs(int ownerId)
     {
-        return StatusCode(418);
+        Log(LogLevel.Information, AccessLogControllerEventIds.GetOwnerLogsAttempt,
+            "Get owner logs attempt for owner {OwnerId}", ownerId);
+
+        if (ownerId < 1)
+        {
+            Log(LogLevel.Warning, AccessLogControllerEventIds.GetOwnerLogsInvalid,
+                "Owner identifier is not valid");
+
+            return StatusCode(StatusCodes.Status400BadRequest, "Owner id is not valid");
+        }
+
+        var result = await _accessLogService.GetOwnerAccessLogsAsync(ownerId);
+
+        result.OnSuccess(() =>
+                Log(LogLevel.Information, AccessLogControllerEventIds.GetOwnerLogsSuccess,
+                    "Retrieved access logs for owner {OwnerId}", ownerId))
+            .OnFailure(() =>
+                Log(LogLevel.Error, AccessLogControllerEventIds.GetOwnerLogsFailure,
+                    "Failed to retrieve owner access logs for owner {OwnerId}. Error: {Error}",
+                    ownerId, result.Error));
+
+        return result.Failure
+            ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
+            : StatusCode(StatusCodes.Status200OK, result.Value);
     }
 
-    [Authorize(Roles="User")]
-    [HttpGet("user/{spaceId:int}")]
+    [Authorize(Roles = "User")]
+    [HttpGet("user/{userId:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [EndpointSummary("Get user access logs")]
+    [EndpointDescription("Retrieves access logs for a specific user.")]
     public async Task<IActionResult> GetUserLogs(int userId)
     {
-        return StatusCode(418);
+        Log(LogLevel.Information, AccessLogControllerEventIds.GetUserLogsAttempt,
+            "Get user logs attempt for user {UserId}", userId);
+
+        if (userId < 1)
+        {
+            Log(LogLevel.Warning, AccessLogControllerEventIds.GetUserLogsInvalid,
+                "User identifier is not valid");
+
+            return StatusCode(StatusCodes.Status400BadRequest, "User id is not valid");
+        }
+
+        var result = await _accessLogService.GetUserAccessLogsAsync(userId);
+        result.OnSuccess(() =>
+                Log(LogLevel.Information, AccessLogControllerEventIds.GetUserLogsSuccess,
+                    "Retrieved access logs for user {UserId}", userId))
+            .OnFailure(() =>
+                Log(LogLevel.Error, AccessLogControllerEventIds.GetUserLogsFailure,
+                    "Failed to retrieve access logs for user {UserId}. Error: {Error}",
+                    userId, result.Error));
+
+        return result.Failure
+            ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
+            : StatusCode(StatusCodes.Status200OK, result.Value);
     }
 
-    [Authorize(Roles="User")]
+    [Authorize(Roles = "User")]
     [HttpGet("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [EndpointSummary("Get access log by id")]
+    [EndpointDescription("Retrieves a single access log entry by its identifier. Returns 404 if not found.")]
     public async Task<IActionResult> GetLogById(int id)
     {
-        return StatusCode(418);
+        Log(LogLevel.Information, AccessLogControllerEventIds.GetLogByIdAttempt,
+            "Get access log by id attempt for id {AccessLogId}", id);
+
+        if (id < 1)
+        {
+            Log(LogLevel.Warning, AccessLogControllerEventIds.GetLogByIdInvalid,
+                "Access log identifier is not valid");
+
+            return StatusCode(StatusCodes.Status400BadRequest, "Id is not valid");
+        }
+
+        var result = await _accessLogService.GetLogById(id);
+        result.OnSuccess(() =>
+                Log(LogLevel.Information, AccessLogControllerEventIds.GetLogByIdSuccess,
+                    "Retrieved access log with id {AccessLogId}", id))
+            .OnFailure(() =>
+                Log(LogLevel.Error, AccessLogControllerEventIds.GetLogByIdFailure,
+                    "Failed to retrieve access log with id {AccessLogId}. Error: {Error}",
+                    id, result.Error));
+
+        if (result.Failure)
+        {
+            var status = result.Error?.Contains("not found", StringComparison.OrdinalIgnoreCase) == true
+                ? StatusCodes.Status404NotFound
+                : StatusCodes.Status500InternalServerError;
+
+            return StatusCode(status, result.Error);
+        }
+
+        return StatusCode(StatusCodes.Status200OK, result.Value);
     }
 }

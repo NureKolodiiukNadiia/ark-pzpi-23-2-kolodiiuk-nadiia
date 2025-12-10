@@ -261,7 +261,7 @@ public class SubscriptionController : BaseController<SubscriptionController>
     }
 
     [Authorize(Roles = "User")]
-    [HttpPut("{userId:int}/{subscriptionId:int}/cancel")]
+    [HttpPut("{subscriptionId:int}/cancel")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

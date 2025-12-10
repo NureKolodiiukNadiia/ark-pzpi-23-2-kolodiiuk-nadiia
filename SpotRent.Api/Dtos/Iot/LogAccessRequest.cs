@@ -6,7 +6,7 @@ public class LogAccessRequest
 {
     public int UserId { get; set; }
 
-    public string DeviceId { get; set; }
+    public int DeviceId { get; set; }
 
     public AccessType AccessType { get; set; }
 
@@ -14,5 +14,5 @@ public class LogAccessRequest
 
     public bool IsSuccessful { get; set; } = true;
 
-    public string? ErrorMessage { get; set; }
+    public string ErrorMessage { get; set; }
 }

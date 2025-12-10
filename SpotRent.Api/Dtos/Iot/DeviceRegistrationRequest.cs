@@ -1,6 +1,6 @@
 namespace SpotRent.Api.Dtos.Iot;
 
-public class HandshakeRequest
+public class DeviceRegistrationRequest
 {
     
 }

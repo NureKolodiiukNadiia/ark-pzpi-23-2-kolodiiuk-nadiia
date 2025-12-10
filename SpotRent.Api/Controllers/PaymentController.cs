@@ -23,6 +23,8 @@ public class PaymentController : ControllerBase
 
     [HttpPost("callback")]
     [Consumes("application/x-www-form-urlencoded")]
+    [EndpointSummary("Processes LiqPay payment callbacks.")]
+    [EndpointDescription("Validates the callback signature, decodes the payload, and updates subscription payment status based on LiqPay response data.")]
     public async Task<IActionResult> PaymentCallback([FromForm] LiqPayCallback callback)
     {
         try

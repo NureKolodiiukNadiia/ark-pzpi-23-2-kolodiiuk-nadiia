@@ -21,7 +21,7 @@ public class AccessLog
         
     public bool IsSuccessful { get; set; } = true;
         
-    public string? ErrorMessage { get; set; }
+    public string ErrorMessage { get; set; }
         
     public User User { get; set; }
 

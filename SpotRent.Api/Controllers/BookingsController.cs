@@ -29,6 +29,8 @@ public class BookingsController : BaseController<BookingsController>
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpPost("{userId:int}")]
+    [EndpointSummary("Creates a new booking for a user.")]
+    [EndpointDescription("Validates the booking payload for the specified user and persists the reservation when the request is valid.")]
     public async Task<IActionResult> CreateBooking(int userId, CreateBookingRequest request)
     {
         Log(LogLevel.Information, BookingsControllerEventIds.CreateBookingAttempt,
@@ -60,6 +62,8 @@ public class BookingsController : BaseController<BookingsController>
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpGet("users/{userId}/history")]
     // [Authorize(Roles = "User")]
+    [EndpointSummary("Gets the historical bookings for a user.")]
+    [EndpointDescription("Validates the user identifier and returns the full booking history including pagination metadata.")]
     public async Task<IActionResult> GetUserBookingsHistory(int userId)
     {
         Log(LogLevel.Information, BookingsControllerEventIds.GetUserBookingsHistoryAttempt,
@@ -111,6 +115,8 @@ public class BookingsController : BaseController<BookingsController>
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpGet("users/{userId}/active")]
     // [Authorize(Roles = "User")]
+    [EndpointSummary("Lists active bookings for a user.")]
+    [EndpointDescription("Returns all in-progress or upcoming bookings for the specified user after validating the identifier.")]
     public async Task<IActionResult> GetUserActiveBookings(int userId)
     {
         Log(LogLevel.Information, BookingsControllerEventIds.GetUserActiveBookingsAttempt,
@@ -162,6 +168,8 @@ public class BookingsController : BaseController<BookingsController>
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpGet("owners/{ownerId}")]
     // [Authorize(Roles = "Owner")]
+    [EndpointSummary("Gets bookings for an owner across their spaces.")]
+    [EndpointDescription("Retrieves every booking tied to the owner's spaces after confirming the owner identifier is valid.")]
     public async Task<IActionResult> GetOwnerBookings(int ownerId)
     {
         Log(LogLevel.Information, BookingsControllerEventIds.GetOwnerBookingsAttempt,
@@ -213,6 +221,8 @@ public class BookingsController : BaseController<BookingsController>
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpGet("owners/{ownerId}/active")]
     // [Authorize(Roles = "Owner")]
+    [EndpointSummary("Gets active bookings for an owner.")]
+    [EndpointDescription("Returns only active bookings associated with the owner's spaces once the owner ID is validated.")]
     public async Task<IActionResult> GetOwnerActiveBookings(int ownerId)
     {
         Log(LogLevel.Information, BookingsControllerEventIds.GetOwnerBookingsAttempt,
@@ -265,6 +275,8 @@ public class BookingsController : BaseController<BookingsController>
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpGet("filter/{userId:int}")]
     // [Authorize(Roles = "User, Owner")]
+    [EndpointSummary("Filters bookings with paging and sorting options.")]
+    [EndpointDescription("Supports filtering by user, space, time range, status, and payment information to return the relevant bookings page.")]
     public async Task<IActionResult> GetBookings(
         [FromQuery] int userId,
         [FromQuery] int? spaceId,
@@ -328,6 +340,8 @@ public class BookingsController : BaseController<BookingsController>
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpGet("{id:int}")]
+    [EndpointSummary("Retrieves booking details by identifier.")]
+    [EndpointDescription("Validates the booking ID, loads the booking from storage, and returns its details if found.")]
     public async Task<IActionResult> GetBooking(int id)
     {
         Log(LogLevel.Information, BookingsControllerEventIds.GetBookingAttempt,
@@ -361,6 +375,8 @@ public class BookingsController : BaseController<BookingsController>
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpPut("{id:int}")]
+    [EndpointSummary("Cancels a booking.")]
+    [EndpointDescription("Intended to cancel the specified booking; currently returns a placeholder response.")]
     public async Task<IActionResult> CancelBooking(int id)
     {
         Log(LogLevel.Information, BookingsControllerEventIds.CancelBookingAttempt,
