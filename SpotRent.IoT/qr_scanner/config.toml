@@ -1,0 +1,32 @@
+[server]
+host = "https://api.your-inventory-system.com"
+
+[scanner]
+device_id = "warehouse_entry_01"
+poll_interval_ms = 50          # How often to check the scanner hardware
+min_scan_interval_ms = 1500    # Ignore scans within 1.5s of each other
+max_history_size = 50          # Keep last 50 scans in memory for deduplication
+mechanism = "simulated"        # Options: "simulated", "opencv", "serial"
+
+# Validation patterns (regex). Scan is only sent if it matches ANY pattern.
+scanner.validation_patterns = [
+    "^https://example\\.com/product/\\d+$", # Match specific product URL format
+    "^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$" # Match a custom license plate format, e.g., "1A2B-3C4D-5E6F"
+]
+
+# Configuration for a simulated scanner
+[scanner.simulated]
+scan_interval_mean_sec = 5     # Average time between simulated scans
+scan_interval_stddev_sec = 2   # Standard deviation for randomness
+valid_data = [
+    "https://example.com/product/12345",
+    "https://example.com/product/67890",
+    "1A2B-3C4D-5E6F"
+]
+invalid_data_probability = 0.2 # Chance to generate an invalid scan
+
+# Configuration for a real serial scanner (e.g., HID, Zebra)
+[scanner.serial]
+port = "/dev/ttyUSB0"
+baud_rate = 9600
+delimiter = "\r\n"             # End-of-read delimiter
