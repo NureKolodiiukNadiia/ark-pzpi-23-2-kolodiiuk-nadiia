@@ -6,9 +6,30 @@
 
 #include <unistd.h>
 #include "lock_mechanism.h"
+LockMechanism* createLockMechanism(const toml::table& config) {
 
-// Factory function declaration (implemented in a separate file, e.g., mechanism_factory.cpp)
-LockMechanism *createLockMechanism(const toml::table &config);
+    const auto mech_type = config["lock"]["mechanism"].value<std::string>();
+
+    if (mech_type == "simulated") {
+        std::cout << "Creating simulated lock mechanism.\n";
+        return new SimulatedLock(config);
+    }
+    else {
+        std::cerr << "Unknown lock mechanism type: " << mech_type.value() << "\n";
+        return nullptr;
+    }
+}
+
+    bool unlock() override { is_locked = false; std::cout << "[SIM] Lock unlocked.\n"; return true; }
+    bool lock() override { is_locked = true; std::cout << "[SIM] Lock locked.\n"; return true; }
+    bool isLocked() override { return is_locked; }
+    std::string getStatus() const override {
+        // Randomly simulate an event (like an NFC tap)
+        if ( (std::rand() / static_cast<double>(RAND_MAX)) < event_probability ) {
+            return "access_requested";
+        }
+        return "idle";
+    }
 
 SmartLock::SmartLock(const toml::table &config) {
     const auto api_host = config["server"]["host"].value<std::string>();

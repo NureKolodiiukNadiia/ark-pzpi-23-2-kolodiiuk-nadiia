@@ -1,16 +1,27 @@
-#ifndef COWORKINGACCESS_IOT_QR_SCANNER_H
-#define COWORKINGACCESS_IOT_QR_SCANNER_H
+#ifndef SPOTRENT_IOT_QR_SCANNER_H
+#define SPOTRENT_IOT_QR_SCANNER_H
 #include "scanner_source.h"
-
-#endif //COWORKINGACCESS_IOT_QR_SCANNER_H
 
 #pragma once
 #include <string>
 #include <toml.hpp>
 #include <cpr/cpr.h>
 #include <vector>
+struct ScannedCode 
+{
+    std::string data;
+    long timestamp;
+};
 
-class ScannerSource; // Forward declaration
+class ScannerSource {
+public:
+    virtual ~ScannerSource() = default;
+    virtual std::optional<ScannedCode> getScan() = 0;
+    virtual void triggerScan() = 0; // For manual trigger simulation
+};
+
+
+class ScannerSource;
 
 class QrScanner {
 private:
@@ -19,22 +30,10 @@ private:
     unsigned int poll_interval_ms;
 
     ScannerSource* scanner_source;
-
-    // History and rate limiting
-    std::vector<ScannedCode> scan_history;
-    size_t max_history_size;
-    long last_scan_time = 0;
-    int min_scan_interval_ms; // Prevent duplicate scans
-
-    // Validation patterns (e.g., for URL, UUID, custom format)
-    std::vector<std::string> validation_patterns;
-
-    void sendScanToServer(const ScannedCode& scan);
-    bool validateScan(const ScannedCode& scan);
-    void logEvent(const std::string& event, const std::string& detail = "");
-
 public:
     explicit QrScanner(const toml::table& config);
     ~QrScanner();
-    void run(); // Main loop
+    void run();
 };
+
+#endif
