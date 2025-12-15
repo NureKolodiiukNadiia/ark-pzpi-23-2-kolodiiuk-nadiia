@@ -4,27 +4,22 @@ project(SpotRent_IoT)
 set(CMAKE_CXX_STANDARD 17)
 
 add_executable(SpotRent_IoT
-        lock/lock_mechanism.h
-        lock/smart_lock.h
+        main.cpp
+        device/device.cpp
+        device/device.h
         lock/smart_lock.cpp
-        lock/mechanism_factory.cpp
+        lock/smart_lock.h
         qr_scanner/qr_scanner.cpp
-        qr_scanner/qr_scanner.h
-        qr_scanner/scanner_source.h
-        qr_scanner/scanner_factory.cpp
-        main.cpp)
+        qr_scanner/qr_scanner.h)
 
 find_package(tomlplusplus CONFIG REQUIRED PATHS /opt/tomlplusplus/lib64/cmake/tomlplusplus)
 target_include_directories(SpotRent_IoT PRIVATE /opt/tomlplusplus/include/toml++)
 target_link_libraries(SpotRent_IoT PRIVATE tomlplusplus::tomlplusplus)
 
-#find_package(fmt CONFIG REQUIRED)
-#target_link_libraries(SpotRent_IoT PRIVATE fmt::fmt)
-find_package(cpr CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 
 target_link_libraries(SpotRent_IoT
-        PRIVATE cpr::cpr fmt::fmt
+        PRIVATE fmt::fmt
 )
 #find_package(cpr CONFIG REQUIRED PATHS /opt/cpr/lib64/cmake/cpr NO_DEFAULT_PATH)
 

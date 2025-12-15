@@ -1,2 +1,38 @@
 [server]
-host = "https://api.your-inventory-system.com"
+host = "http://localhost:5298/api"
+
+[device]
+id = 1
+default_booking_id = 1
+register_on_start = true
+
+[lock]
+initial_state = "locked"
+relock_delay_ms = 2000
+
+[scanner]
+poll_interval_ms = 1000
+
+[[scanner.simulated_scans]]
+user_id = 101
+booking_id = 2001
+qr_code = "VALID-ENTRY-1"
+access_type = 0
+should_unlock = true
+pause_after_ms = 1000
+
+[[scanner.simulated_scans]]
+user_id = 101
+booking_id = 2001
+qr_code = "DUPLICATE-ENTRY"
+access_type = 2
+should_unlock = false
+pause_after_ms = 500
+
+[[scanner.simulated_scans]]
+user_id = 10
+booking_id = 0
+qr_code = "OWNER-CHECK"
+access_type = 0
+is_owner = true
+should_unlock = true

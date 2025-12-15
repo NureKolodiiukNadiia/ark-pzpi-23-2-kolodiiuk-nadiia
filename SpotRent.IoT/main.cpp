@@ -1,21 +1,19 @@
 #include <iostream>
-#include <unistd.h>
-#include <cstdio>
+#include <toml.hpp>
 
-void loop();
+#include "device/device.h"
 
 int main() {
-    printf("%s", "jlhbf");
-    loop();
+    try {
+        auto config = toml::parse_file("config.toml");
+        Device device(config);
+        device.addQrScanner();
+        device.addSmartLock();
+        device.run();
+    } catch (const std::exception& ex) {
+        std::cerr << "[FATAL] " << ex.what() << "\n";
+        return 1;
+    }
 
     return 0;
-}
-
-void loop() {
-    int c = 0;
-    while (true) {
-        sleep(1);
-        printf("%s no: %d\n", "Hell", ++c);
-        fflush(stdout);
-    }
 }

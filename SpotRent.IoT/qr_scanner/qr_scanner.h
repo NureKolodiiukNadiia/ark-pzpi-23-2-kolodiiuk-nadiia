@@ -1,39 +1,32 @@
 #ifndef SPOTRENT_IOT_QR_SCANNER_H
 #define SPOTRENT_IOT_QR_SCANNER_H
-#include "scanner_source.h"
 
-#pragma once
+#include <cstddef>
 #include <string>
 #include <toml.hpp>
-#include <cpr/cpr.h>
 #include <vector>
-struct ScannedCode 
-{
-    std::string data;
-    long timestamp;
+
+struct QrScanEvent {
+    int userId{0};
+    int bookingId{0};
+    std::string qrCode;
+    int accessType{0};
+    bool isOwner{false};
+    bool shouldUnlock{true};
+    unsigned int pauseAfterMs{0};
 };
-
-class ScannerSource {
-public:
-    virtual ~ScannerSource() = default;
-    virtual std::optional<ScannedCode> getScan() = 0;
-    virtual void triggerScan() = 0; // For manual trigger simulation
-};
-
-
-class ScannerSource;
 
 class QrScanner {
-private:
-    std::string api_host;
-    std::string device_id;
-    unsigned int poll_interval_ms;
-
-    ScannerSource* scanner_source;
 public:
     explicit QrScanner(const toml::table& config);
-    ~QrScanner();
-    void run();
+
+    bool next(QrScanEvent& event);
+    [[nodiscard]] unsigned int pollIntervalMs() const;
+
+private:
+    unsigned int poll_interval_ms;
+    std::vector<QrScanEvent> simulated_events;
+    std::size_t next_index;
 };
 
 #endif
