@@ -7,7 +7,6 @@ int main() {
     try {
         auto config = toml::parse_file("config.toml");
         Device device(config);
-        device.addQrScanner();
         device.addSmartLock();
         device.run();
     } catch (const std::exception& ex) {

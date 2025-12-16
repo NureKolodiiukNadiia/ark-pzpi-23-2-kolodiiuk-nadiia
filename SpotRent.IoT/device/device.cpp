@@ -4,9 +4,9 @@
 #include <fmt/core.h>
 #include <iostream>
 #include <thread>
+#include <cpr/cpr.h>
 
 #include "../lock/smart_lock.h"
-#include "../qr_scanner/qr_scanner.h"
 
 namespace {
 std::string escapeJson(const std::string& value) {
@@ -42,108 +42,125 @@ Device::Device(const toml::table& config)
     : config_table(config),
       device_id(config["device"]["id"].value_or(1)),
       api_host(config["server"]["host"].value_or("")),
-      auto_register(config["device"]["register_on_start"].value_or(true)),
-      default_booking_id(config["device"]["default_booking_id"].value_or(0)) {
-    if (api_host.empty()) {
-        throw std::runtime_error("server.host must be configured");
-    }
+      auto_register(config["device"]["register_on_start"].value_or(true)) {
 
-    while (!api_host.empty() && api_host.back() == '/') {
-        api_host.pop_back();
+    if (api_host.empty()) {
+
+        throw std::runtime_error("server.host must be configured");
     }
 }
 
 Device::~Device() = default;
 
-void Device::addQrScanner() {
-    scanner = std::make_unique<QrScanner>(config_table);
-}
-
 void Device::addSmartLock() {
+
     smart_lock = std::make_unique<SmartLock>(config_table);
 }
 
 bool Device::lock() {
+
     if (!smart_lock) {
+
         return false;
     }
+
     bool result = smart_lock->lock();
     if (result) {
+
         updateDeviceStatus(smart_lock->status(), true);
     }
+
     return result;
 }
 
 bool Device::unlock() {
+
     if (!smart_lock) {
+
         return false;
     }
     bool result = smart_lock->unlock();
     if (result) {
+
         updateDeviceStatus(smart_lock->status(), true);
     }
+
     return result;
 }
 
 void Device::run() {
-    if (!scanner) {
-        addQrScanner();
-    }
     if (!smart_lock) {
+
         addSmartLock();
     }
 
     if (auto_register && !registerDevice()) {
-        std::cerr << "[WARN] Device registration failed. Continuing with simulation.\n";
+
+        std::cerr << "[WARN] Device registration failed.\n";
     }
 
     updateDeviceStatus(smart_lock->status(), true);
 
-    QrScanEvent scan{};
-    while (scanner->next(scan)) {
-        std::cout << "[INFO] Processing scan for user " << scan.userId
-                  << " with QR token '" << scan.qrCode << "'\n";
+    struct ManualScan {
 
-        bool shouldUnlock = scan.shouldUnlock;
+        std::string qrCode;
+    };
+
+    auto handleScan = [&](const ManualScan& scan) {
+
+        std::cout << "[INFO] Processing scan for user with QR token '" << scan.qrCode << "'\n";
+
         bool unlockResult = false;
         std::string errorMessage;
 
-        if (shouldUnlock) {
-            unlockResult = unlock();
-            if (!unlockResult) {
-                errorMessage = "Lock is already unlocked";
-            }
-        } else {
-            errorMessage = "Access denied by simulation";
-        }
-
-        if (scan.isOwner) {
-            logEventOwner(scan.userId, scan.accessType, unlockResult, errorMessage);
-        } else {
-            int bookingId = scan.bookingId > 0 ? scan.bookingId : default_booking_id;
-            logEvent(scan.userId, bookingId, scan.accessType, unlockResult, errorMessage);
-        }
-
         if (unlockResult && smart_lock->relockDelayMs() > 0) {
+
             std::this_thread::sleep_for(std::chrono::milliseconds(smart_lock->relockDelayMs()));
             lock();
         }
+    };
 
-        unsigned int pause = scan.pauseAfterMs > 0 ? scan.pauseAfterMs : scanner->pollIntervalMs();
-        std::this_thread::sleep_for(std::chrono::milliseconds(pause));
+    std::cout << "[CLI] Enter QR tokens manually (type 'exit' to quit)." << std::endl;
+    std::string input;
+    while (true) {
+
+        std::cout << "QR> " << std::flush;
+        if (!std::getline(std::cin, input)) {
+
+            break;
+        }
+
+        if (input == "exit" || input == "quit") {
+
+            break;
+        }
+
+        if (input.empty()) {
+
+            continue;
+        }
+
+        handleScan(ManualScan{
+            .qrCode = input,
+        });
     }
 
     updateDeviceStatus(smart_lock->status(), true);
 }
 
 bool Device::registerDevice() const {
+
     std::string payload = fmt::format(R"({{"deviceId": {}}})", device_id);
+
     return postJson("/IoT/register", payload);
 }
 
-void Device::logEvent(int userId, int bookingId, int accessType, bool isSuccessful, const std::string& errorMessage) const {
+void Device::logEvent(int userId, int bookingId, int accessType,
+    bool isSuccessful, const std::string& errorMessage) const {
+
     if (bookingId <= 0) {
         std::cerr << "[WARN] Unable to log access event without valid booking id.\n";
+
         return;
     }
 
@@ -160,6 +177,7 @@ void Device::logEvent(int userId, int bookingId, int accessType, bool isSuccessf
 }
 
 void Device::logEventOwner(int userId, int accessType, bool isSuccessful, const std::string& errorMessage) const {
+
     std::string payload = fmt::format(
         R"({{"userId": {}, "deviceId": {}, "accessType": {}, "isSuccessful": {}, "errorMessage": "{}"}})",
         userId,
@@ -172,6 +190,7 @@ void Device::logEventOwner(int userId, int accessType, bool isSuccessful, const 
 }
 
 void Device::updateDeviceStatus(const std::string& statusMessage, bool isOnline) const {
+
     std::string payload = fmt::format(
         R"({{"deviceId": {}, "isOnline": {}, "statusMessage": "{}"}})",
         device_id,
@@ -182,6 +201,27 @@ void Device::updateDeviceStatus(const std::string& statusMessage, bool isOnline)
 }
 
 bool Device::postJson(const std::string& path, const std::string& jsonBody) const {
-    std::cout << "[SIM] POST " << api_host << path << " with body: " << jsonBody << "\n";
-    return true;
+
+    std::string url = api_host;
+    if (!url.empty() && url.back() == '/' && !path.empty() && path.front() == '/') {
+        url.pop_back();
+    }
+
+    url += path;
+
+    cpr::Response response = cpr::Post(
+        cpr::Url{url},
+        cpr::Body{jsonBody},
+        cpr::Header{{"Content-Type", "application/json"}},
+        cpr::Timeout{5000}
+    );
+
+    if (response.error.code != cpr::ErrorCode::OK) {
+        std::cerr << "[ERROR] POST " << url << " failed: " << response.error.message << "\n";
+        return false;
+    }
+
+    std::cout << "[HTTP] POST " << url << " status " << response.status_code << " body: " << response.text << "\n";
+
+    return response.status_code >= 200 && response.status_code < 300;
 }

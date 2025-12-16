@@ -21,15 +21,15 @@ find_package(fmt CONFIG REQUIRED)
 target_link_libraries(SpotRent_IoT
         PRIVATE fmt::fmt
 )
-#find_package(cpr CONFIG REQUIRED PATHS /opt/cpr/lib64/cmake/cpr NO_DEFAULT_PATH)
+find_package(cpr CONFIG REQUIRED PATHS /opt/cpr/lib64/cmake/cpr NO_DEFAULT_PATH)
 
-#if (NOT TARGET cpr::cpr)
-#    message(FATAL_ERROR "cpr::cpr target not found. Check your cpr installation.")
-#endif()
+if (NOT TARGET cpr::cpr)
+    message(FATAL_ERROR "cpr::cpr target not found. Check your cpr installation.")
+endif()
 
-#target_sources(SpotRent_IoT
-#        PRIVATE
-#        /opt/cpr/include/cpr/cpr.h
-#)
-#target_include_directories(SpotRent_IoT PRIVATE /opt/cpr/include /opt/cpr/include/cpr)
-#target_link_libraries(SpotRent_IoT PRIVATE cpr::cpr)
+target_sources(SpotRent_IoT
+        PRIVATE
+        /opt/cpr/include/cpr/cpr.h
+)
+target_include_directories(SpotRent_IoT PRIVATE /opt/cpr/include /opt/cpr/include/cpr)
+target_link_libraries(SpotRent_IoT PRIVATE cpr::cpr)

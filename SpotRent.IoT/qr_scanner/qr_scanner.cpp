@@ -30,16 +30,8 @@ QrScanner::QrScanner(const toml::table& config)
         }
     }
 
-    if (simulated_events.empty()) {
-        QrScanEvent defaultEvent{};
-        defaultEvent.userId = 1;
-        defaultEvent.bookingId = 1;
-        defaultEvent.qrCode = "SIMULATED-DEFAULT";
-        simulated_events.push_back(defaultEvent);
-    }
-
-    std::cout << "[INFO] QR scanner prepared with " << simulated_events.size()
-              << " simulated scans.\n";
+    std::cout << "[INFO] QR scanner initialized with " << simulated_events.size()
+              << " predefined scans.\n";
 }
 
 bool QrScanner::next(QrScanEvent& event) {

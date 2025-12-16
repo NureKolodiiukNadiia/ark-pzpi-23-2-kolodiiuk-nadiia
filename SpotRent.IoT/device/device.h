@@ -6,7 +6,6 @@
 #include <toml.hpp>
 #include <vector>
 
-class QrScanner;
 class SmartLock;
 
 class Device {
@@ -14,7 +13,6 @@ public:
     explicit Device(const toml::table& config);
     ~Device();
 
-    void addQrScanner();
     void addSmartLock();
     void run();
     bool lock();
@@ -25,9 +23,7 @@ private:
     int device_id;
     std::string api_host;
     bool auto_register;
-    int default_booking_id;
 
-    std::unique_ptr<QrScanner> scanner;
     std::unique_ptr<SmartLock> smart_lock;
 
     bool registerDevice() const;
