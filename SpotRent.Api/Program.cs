@@ -13,6 +13,7 @@ using SpotRent.Api.Middleware;
 using SpotRent.Domain.Entities;
 using SpotRent.Infrastructure;
 using SpotRent.Services;
+using Scalar.AspNetCore;
 
 var config = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
@@ -41,6 +42,12 @@ builder.Host.UseSerilog();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "SpotRent API",
+        Version = "v1"
+    });
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
@@ -62,7 +69,7 @@ builder.Services.AddSwaggerGen(c =>
                     Id = "Bearer"
                 }
             },
-            new string[] {}
+            new string[] { }
         }
     });
 });
@@ -163,7 +170,20 @@ try
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();
-        app.UseSwaggerUI();
+
+        app.UseSwaggerUI(options =>
+        {
+            options.SwaggerEndpoint(
+                "/swagger/v1/swagger.json",
+                "SpotRent API v1");
+        });
+
+        app.MapScalarApiReference(options =>
+        {
+            options
+                .WithTitle("SpotRent API")
+                .WithOpenApiRoutePattern("/swagger/v1/swagger.json");
+        });
     }
 
     app.UseMiddleware<ExceptionHandlerMiddleware>();
