@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SpotRent.Api.Dtos;
 using SpotRent.Api.Dtos.Auth;
 using SpotRent.Api.Logging;
 using SpotRent.Domain.Entities;
@@ -223,7 +222,6 @@ public class AuthController : BaseController<AuthController>
         return Ok(response);
     }
 
-    // todo: consider [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [HttpPost("logout")]
@@ -258,7 +256,7 @@ public class AuthController : BaseController<AuthController>
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [HttpPost("verify")]
-    [Authorize(Roles = "User, Admin")]
+    [Authorize(Roles = "User, Owner, Admin")]
     [EndpointSummary("Verifies the caller's JWT and returns profile data.")]
     [EndpointDescription("Reads the user identifier from claims, loads the user entity, and confirms the token is still valid.")]
     public async Task<ActionResult<UserDto>> VerifyToken()
@@ -376,7 +374,7 @@ public class AuthController : BaseController<AuthController>
         {
             Email = registerRequest.Email,
             NormalizedEmail = registerRequest.Email.ToUpper(),
-            Role = Role.Admin,
+            Role = Role.Owner,
         };
 
         var result = await _authService.RegisterAsync(user, registerRequest.Password,
