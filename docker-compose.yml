@@ -27,13 +27,13 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=atark;Username=myuser;Password=mypassword"
-      Jwt__Issuer: "spot-rent"
-      Jwt__Audience: "your-app-users"
-      Jwt__Secret: "Q3dXV2Z2dFhEVUpGbWxzUzZsSEdkc3N1RkU0cENzZ3Nid2pkYmE1c3RVRjQ="
-      TokenOptions__TokenExpirationMinutes: "180"
-      TokenOptions__RefreshTokenExpirationDays: "7"
-      GoogleAuth__ClientId: "103104858818-t81fh5qs9t74135p630o4kkd7nbkiaj4.apps.googleusercontent.com"
+      ConnectionStrings__DefaultConnection: "${CONNECTION_STRING}"
+      Jwt__Issuer: "${JWT_ISSUER}"
+      Jwt__Audience: "${JWT_AUDIENCE}"
+      Jwt__Secret: "${JWT_SECRET}"
+      TokenOptions__TokenExpirationMinutes: "${TOKEN_OPTIONS_TOKEN_EXPIRATION_MINUTES}"
+      TokenOptions__RefreshTokenExpirationDays: "${TOKEN_OPTIONS_REFRESH_TOKEN_EXPIRATION_DAYS}"
+      GoogleAuth__ClientId: "${GOOGLE_AUTH_CLIENT_ID}"
       GoogleAuth__ClientSecret: "${GOOGLE_CLIENT_SECRET}"
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
     expose:
