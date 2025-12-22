@@ -27,8 +27,6 @@ public record CreateSpaceDto
 
     public DateTime CreatedAt { get; init; }
 
-    public int OwnerId { get; set; }
-
     public IEnumerable<WorkingHoursDto> WorkingHours { get; set; }
 
     public IEnumerable<CreateAttributeValueDto> AttributeValues { get; set; }
@@ -46,7 +44,6 @@ public record CreateSpaceDto
             HourlyRate = HourlyRate,
             AddressId = AddressId,
             ImageUrl = ImageUrl,
-            OwnerId = OwnerId,
             IsAvailable = IsAvailable,
             CreatedAt = CreatedAt == default ? DateTime.UtcNow : CreatedAt,
             WorkingHours = WorkingHours?.Select(wh => new WorkingHours

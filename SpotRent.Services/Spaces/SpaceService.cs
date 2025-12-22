@@ -233,7 +233,12 @@ public class SpaceService : BaseService<SpaceService>, ISpaceService
 
             var bookings = await Context.Bookings
                 .Where(b => b.SpaceId == spaceId && b.CancelledAt == null)
-                .Where(b => b.StartTime < endDate && b.EndTime > startDate && endDate < b.EndTime && startDate > b.StartTime)
+                .Where(b =>
+                    b.SpaceId == spaceId &&
+                    b.CancelledAt == null &&
+                    b.StartTime < endDate &&
+                    b.EndTime > startDate
+                )
                 .OrderBy(b => b.StartTime)
                 .Select(b => new { b.StartTime, b.EndTime })
                 .ToListAsync();
@@ -262,7 +267,7 @@ public class SpaceService : BaseService<SpaceService>, ISpaceService
         }
     }
 
-    public async Task<Result> UpdateSpaceAsync(Space space)
+    public async Task<Result> UpdateSpaceAsync(Space space, int ownerId)
     {
         if (space is null || space.Id < 1)
         {
@@ -281,66 +286,15 @@ public class SpaceService : BaseService<SpaceService>, ISpaceService
                 return Result.Fail($"No space with id: {space.Id}");
             }
 
-            // Update scalar properties
+            if (space.OwnerId != ownerId)
+            {
+                return Result.Fail($"User {ownerId} is not owner of space {space.Id}");
+            }
+
             Context.Entry(existingSpace).CurrentValues.SetValues(space);
             existingSpace.UpdatedAt = DateTime.UtcNow;
-
-            // Sync AttributeValues
-            var incomingAttr = space.AttributeValues ?? new List<AttributeValue>();
-            // Remove missing
-            foreach (var existingAv in existingSpace.AttributeValues.ToList())
-            {
-                if (!incomingAttr.Any(a => a.Id == existingAv.Id && a.Id > 0))
-                {
-                    Context.Remove(existingAv);
-                }
-            }
-
-            // Add or update incoming
-            foreach (var av in incomingAttr)
-            {
-                if (av.Id > 0)
-                {
-                    var match = existingSpace.AttributeValues.FirstOrDefault(a => a.Id == av.Id);
-                    if (match != null)
-                    {
-                        Context.Entry(match).CurrentValues.SetValues(av);
-                    }
-                }
-                else
-                {
-                    av.Space = existingSpace;
-                    existingSpace.AttributeValues.Add(av);
-                }
-            }
-
-            // Sync WorkingHours
-            var incomingWh = space.WorkingHours ?? new List<WorkingHours>();
-            foreach (var existingWh in existingSpace.WorkingHours.ToList())
-            {
-                if (!incomingWh.Any(w => w.Id == existingWh.Id && w.Id > 0))
-                {
-                    Context.Remove(existingWh);
-                }
-            }
-
-            foreach (var wh in incomingWh)
-            {
-                if (wh.Id > 0)
-                {
-                    var match = existingSpace.WorkingHours.FirstOrDefault(w => w.Id == wh.Id);
-                    if (match != null)
-                    {
-                        Context.Entry(match).CurrentValues.SetValues(wh);
-                    }
-                }
-                else
-                {
-                    wh.Space = existingSpace;
-                    existingSpace.WorkingHours.Add(wh);
-                }
-            }
-
+            UpdateAttributeValues(space, existingSpace);
+            UpdateWorkingHours(space, existingSpace);
             await Context.SaveChangesAsync();
 
             return Result.Success();
@@ -361,7 +315,7 @@ public class SpaceService : BaseService<SpaceService>, ISpaceService
         }
     }
 
-    public async Task<Result> DeleteSpaceAsync(int id)
+    public async Task<Result> DeleteSpaceAsync(int id, int ownerId)
     {
         try
         {
@@ -369,6 +323,11 @@ public class SpaceService : BaseService<SpaceService>, ISpaceService
             if (space is null)
             {
                 return Result.Fail($"No space with id: {id}");
+            }
+
+            if (space.OwnerId != ownerId)
+            {
+                return Result.Fail($"User {ownerId} is not owner of space {id}");
             }
 
             Context.Spaces.Remove(space);
@@ -391,11 +350,62 @@ public class SpaceService : BaseService<SpaceService>, ISpaceService
             return Result.Fail($"Failure deleting space: {e.Message}");
         }
     }
-}
 
-public class StartEndTime
-{
-    public DateTime StartTime { get; set; }
+    private void UpdateAttributeValues(Space space, Space existingSpace)
+    {
+        var incomingAttr = space.AttributeValues ?? new List<AttributeValue>();
+        foreach (var existingAv in existingSpace.AttributeValues.ToList())
+        {
+            if (!incomingAttr.Any(a => a.Id == existingAv.Id && a.Id > 0))
+            {
+                Context.Remove(existingAv);
+            }
+        }
 
-    public DateTime EndTime { get; set; }
+        foreach (var av in incomingAttr)
+        {
+            if (av.Id > 0)
+            {
+                var match = existingSpace.AttributeValues.FirstOrDefault(a => a.Id == av.Id);
+                if (match != null)
+                {
+                    Context.Entry(match).CurrentValues.SetValues(av);
+                }
+            }
+            else
+            {
+                av.Space = existingSpace;
+                existingSpace.AttributeValues.Add(av);
+            }
+        }
+    }
+
+    private void UpdateWorkingHours(Space space, Space existingSpace)
+    {
+        var incomingWh = space.WorkingHours ?? new List<WorkingHours>();
+        foreach (var existingWh in existingSpace.WorkingHours.ToList())
+        {
+            if (!incomingWh.Any(w => w.Id == existingWh.Id && w.Id > 0))
+            {
+                Context.Remove(existingWh);
+            }
+        }
+
+        foreach (var wh in incomingWh)
+        {
+            if (wh.Id > 0)
+            {
+                var match = existingSpace.WorkingHours.FirstOrDefault(w => w.Id == wh.Id);
+                if (match != null)
+                {
+                    Context.Entry(match).CurrentValues.SetValues(wh);
+                }
+            }
+            else
+            {
+                wh.Space = existingSpace;
+                existingSpace.WorkingHours.Add(wh);
+            }
+        }
+    }
 }

@@ -14,9 +14,9 @@ public interface ISpaceService
 
     Task<Result<Space>> CreateSpaceAsync(Space space);
 
-    Task<Result> UpdateSpaceAsync(Space space);
+    Task<Result> UpdateSpaceAsync(Space space, int ownerId);
 
-    Task<Result> DeleteSpaceAsync(int id);
+    Task<Result> DeleteSpaceAsync(int id, int ownerId);
 
     Task<Result<bool>> IsSpaceAvailableAsync(int workspaceId, DateTime startTime, DateTime endTime);
 

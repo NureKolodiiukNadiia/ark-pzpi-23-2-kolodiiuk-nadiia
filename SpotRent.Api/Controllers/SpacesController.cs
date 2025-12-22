@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
@@ -22,11 +24,13 @@ public class SpacesController : BaseController<SpacesController>
         _spaceService = spaceService;
     }
 
+    [Authorize(Roles = "Owner")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpPost]
-    [EndpointSummary("Creates a new space listing.")]
+    [EndpointSummary("Creates a new space")]
     [EndpointDescription("Validates the provided space payload, maps it to a domain entity, and persists the new space.")]
     public async Task<IActionResult> CreateSpace(CreateSpaceDto spaceDto)
     {
@@ -41,25 +45,45 @@ public class SpacesController : BaseController<SpacesController>
             return StatusCode(StatusCodes.Status400BadRequest, new ProblemDetails { Detail = "Payload is not valid" });
         }
 
-        var space = spaceDto.MapToSpace();
-        var result = await _spaceService.CreateSpaceAsync(space);
-        result.OnSuccess(() =>
-                Log(LogLevel.Information, SpacesControllerEventIds.CreateSpaceSuccess,
-                    "Successfully created space {SpaceId}", result.Value.Id))
-            .OnFailure(() =>
-                Log(LogLevel.Error, SpacesControllerEventIds.CreateSpaceFailure,
-                    "Failed to create space. Error: {Error}", result.Error));
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        Log(LogLevel.Information, AuthControllerEventIds.TokenVerificationAttempt,
+            "Token verification attempt for user ID: {UserId}", userId);
 
-        return result.Failure
-            ? StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails { Detail = result.Error })
-            : StatusCode(StatusCodes.Status201Created, new { result.Value.Id });
+        if (string.IsNullOrEmpty(userId))
+        {
+            Log(LogLevel.Warning, AuthControllerEventIds.TokenVerificationNoUserId,
+                "Token verification failed: user ID not found in claims");
+
+            return StatusCode(StatusCodes.Status401Unauthorized);
+        }
+
+        var isParsed = int.TryParse(userId, out var id);
+        if (isParsed)
+        {
+            var space = spaceDto.MapToSpace();
+            space.CreatedAt = DateTime.UtcNow;
+            space.OwnerId = id;
+            var result = await _spaceService.CreateSpaceAsync(space);
+            result.OnSuccess(() =>
+                    Log(LogLevel.Information, SpacesControllerEventIds.CreateSpaceSuccess,
+                        "Successfully created space {SpaceId}", result.Value.Id))
+                .OnFailure(() =>
+                    Log(LogLevel.Error, SpacesControllerEventIds.CreateSpaceFailure,
+                        "Failed to create space. Error: {Error}", result.Error));
+
+            return result.Failure
+                ? StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails { Detail = result.Error })
+                : StatusCode(StatusCodes.Status201Created, new { result.Value.Id });
+        }
+
+        return StatusCode(StatusCodes.Status401Unauthorized);
     }
 
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpGet]
-    [EndpointSummary("Retrieves spaces with filtering and pagination.")]
+    [EndpointSummary("Filters spaces")]
     [EndpointDescription("Supports filtering by attributes such as type, capacity, rates, and city while honoring pagination and sorting parameters.")]
     public async Task<IActionResult> GetSpaces(
         [FromQuery(Name = "spaceType")] SpaceType? spaceType,
@@ -153,7 +177,7 @@ public class SpacesController : BaseController<SpacesController>
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpGet("{id:int}")]
-    [EndpointSummary("Gets a single space by identifier.")]
+    [EndpointSummary("Gets a single space by ID")]
     [EndpointDescription("Validates the space ID, loads the space with related data, and returns it or appropriate status when missing.")]
     public async Task<IActionResult> GetSpace(int id)
     {
@@ -193,15 +217,16 @@ public class SpacesController : BaseController<SpacesController>
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [EndpointSummary("Lists available spaces for a time range in a city.")]
-    [EndpointDescription("Checks the requested city and dates, queries availability, and returns spaces free during the specified interval.")]
+    [EndpointSummary("Lists available spaces for a time range in a city")]
+    [EndpointDescription("Checks the requested city and dates (required), queries availability, and returns spaces free during the specified interval.")]
     public async Task<IActionResult> GetAvailableSpaces(
         [FromQuery] DateTime startTime,
         [FromQuery] DateTime endTime,
         [FromQuery] string city)
     {
         Log(LogLevel.Information, SpacesControllerEventIds.GetAvailableSpacesAttempt,
-            "Get available spaces attempt between {Start} and {End} for {City}", startTime, endTime, city);
+            "Get available spaces attempt between {Start} and {End} for {City}",
+            startTime, endTime, city);
 
         if (endTime <= startTime || string.IsNullOrWhiteSpace(city))
         {
@@ -234,7 +259,7 @@ public class SpacesController : BaseController<SpacesController>
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpGet("{id:int}/schedule")]
-    [EndpointSummary("Retrieves the booking schedule for a space.")]
+    [EndpointSummary("Gets the booking schedule for a space")]
     [EndpointDescription("Validates identifiers and date range, then returns the calendar of bookings for the requested space.")]
     public async Task<IActionResult> GetSpaceSchedule(int id, [FromQuery] DateTime? startDate,
         [FromQuery] DateTime? endDate)
@@ -279,12 +304,14 @@ public class SpacesController : BaseController<SpacesController>
         return StatusCode(StatusCodes.Status200OK, result.Value);
     }
 
+    [Authorize(Roles = "Owner")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpPut("{id:int}")]
-    [EndpointSummary("Updates an existing space.")]
+    [EndpointSummary("Updates an existing space")]
     [EndpointDescription("Accepts the edited space details, validates identifiers, and updates the stored space record.")]
     public async Task<IActionResult> UpdateSpace(int id, UpdateSpaceDto spaceDto)
     {
@@ -299,34 +326,53 @@ public class SpacesController : BaseController<SpacesController>
             return StatusCode(StatusCodes.Status400BadRequest, new ProblemDetails { Detail = "Payload is not valid" });
         }
 
-        var space = spaceDto.MapToSpace(id);
-        space.Id = id;
-        var result = await _spaceService.UpdateSpaceAsync(space);
-        result.OnSuccess(() =>
-                Log(LogLevel.Information, SpacesControllerEventIds.UpdateSpaceSuccess,
-                    "Successfully updated space {SpaceId}", id))
-            .OnFailure(() =>
-                Log(LogLevel.Error, SpacesControllerEventIds.UpdateSpaceFailure,
-                    "Failed to update space {SpaceId}. Error: {Error}", id, result.Error));
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        Log(LogLevel.Information, AuthControllerEventIds.TokenVerificationAttempt,
+            "Token verification attempt for user ID: {UserId}", userId);
 
-        if (result.Failure)
+        if (string.IsNullOrEmpty(userId))
         {
-            var status = result.Error?.StartsWith("No space", StringComparison.OrdinalIgnoreCase) == true
-                ? StatusCodes.Status404NotFound
-                : StatusCodes.Status500InternalServerError;
+            Log(LogLevel.Warning, AuthControllerEventIds.TokenVerificationNoUserId,
+                "Token verification failed: user ID not found in claims");
 
-            return StatusCode(status, new ProblemDetails { Detail = result.Error });
+            return StatusCode(StatusCodes.Status401Unauthorized);
         }
 
-        return StatusCode(StatusCodes.Status204NoContent);
+        var isParsed = int.TryParse(userId, out var parsedUserId);
+        if (isParsed)
+        {
+            var space = spaceDto.MapToSpace(id);
+            space.Id = id;
+            var result = await _spaceService.UpdateSpaceAsync(space, parsedUserId);
+            result.OnSuccess(() =>
+                    Log(LogLevel.Information, SpacesControllerEventIds.UpdateSpaceSuccess,
+                        "Successfully updated space {SpaceId}", id))
+                .OnFailure(() =>
+                    Log(LogLevel.Error, SpacesControllerEventIds.UpdateSpaceFailure,
+                        "Failed to update space {SpaceId}. Error: {Error}", id, result.Error));
+
+            if (result.Failure)
+            {
+                var status = result.Error?.StartsWith("No space", StringComparison.OrdinalIgnoreCase) == true
+                    ? StatusCodes.Status404NotFound
+                    : StatusCodes.Status500InternalServerError;
+
+                return StatusCode(status, new ProblemDetails { Detail = result.Error });
+            }
+
+            return StatusCode(StatusCodes.Status204NoContent);
+        }
+
+        return StatusCode(StatusCodes.Status401Unauthorized);
     }
 
+    [Authorize(Roles = "Owner")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HttpDelete("{id:int}")]
-    [EndpointSummary("Deletes a space listing.")]
+    [EndpointSummary("Deletes a space")]
     [EndpointDescription("Validates the provided space identifier and removes the associated space if it exists.")]
     public async Task<IActionResult> DeleteSpace(int id)
     {
@@ -341,24 +387,42 @@ public class SpacesController : BaseController<SpacesController>
             return StatusCode(StatusCodes.Status400BadRequest, new ProblemDetails { Detail = "Id is not valid" });
         }
 
-        var result = await _spaceService.DeleteSpaceAsync(id);
-        result.OnSuccess(() =>
-                Log(LogLevel.Information, SpacesControllerEventIds.DeleteSpaceSuccess,
-                    "Successfully deleted space {SpaceId}", id))
-            .OnFailure(() =>
-                Log(LogLevel.Error, SpacesControllerEventIds.DeleteSpaceFailure,
-                    "Failed to delete space {SpaceId}. Error: {Error}", id, result.Error));
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        Log(LogLevel.Information, AuthControllerEventIds.TokenVerificationAttempt,
+            "Token verification attempt for user ID: {UserId}", userId);
 
-        if (result.Failure)
+        if (string.IsNullOrEmpty(userId))
         {
-            var status = result.Error?.StartsWith("No space", StringComparison.OrdinalIgnoreCase) == true
-                ? StatusCodes.Status404NotFound
-                : StatusCodes.Status500InternalServerError;
+            Log(LogLevel.Warning, AuthControllerEventIds.TokenVerificationNoUserId,
+                "Token verification failed: user ID not found in claims");
 
-            return StatusCode(status, new ProblemDetails() { Detail = result.Error });
+            return Unauthorized();
         }
 
-        return StatusCode(StatusCodes.Status204NoContent);
+        var isParsed = int.TryParse(userId, out var parsedUserId);
+        if (isParsed)
+        {
+            var result = await _spaceService.DeleteSpaceAsync(id, parsedUserId);
+            result.OnSuccess(() =>
+                    Log(LogLevel.Information, SpacesControllerEventIds.DeleteSpaceSuccess,
+                        "Successfully deleted space {SpaceId}", id))
+                .OnFailure(() =>
+                    Log(LogLevel.Error, SpacesControllerEventIds.DeleteSpaceFailure,
+                        "Failed to delete space {SpaceId}. Error: {Error}", id, result.Error));
+
+            if (result.Failure)
+            {
+                var status = result.Error?.StartsWith("No space", StringComparison.OrdinalIgnoreCase) == true
+                    ? StatusCodes.Status404NotFound
+                    : StatusCodes.Status500InternalServerError;
+
+                return StatusCode(status, new ProblemDetails() { Detail = result.Error });
+            }
+
+            return StatusCode(StatusCodes.Status204NoContent);
+        }
+
+        return StatusCode(StatusCodes.Status401Unauthorized);
     }
 
     private static Func<IQueryable<Space>, IIncludableQueryable<Space, object>> BuildDefaultIncludes() =>
