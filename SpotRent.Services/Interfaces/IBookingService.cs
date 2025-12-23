@@ -16,9 +16,9 @@ public interface IBookingService
 
     Task<Result<IEnumerable<Booking>>> GetOwnerActiveBookingsAsync(int ownerId);
 
-    Task<Result<IEnumerable<Booking>>> GetBookingsAsync(BookingFilterRequest req);
+    Task<Result<IEnumerable<Booking>>> GetBookingsAsync(int requesterId, BookingFilterRequest req);
 
-    Task<Result<Booking>> GetBookingByIdAsync(int id);
+    Task<Result<Booking>> GetBookingByIdAsync(int id, int requesterId);
 
     Task<Result> CancelBookingAsync(int bookingId);
 }

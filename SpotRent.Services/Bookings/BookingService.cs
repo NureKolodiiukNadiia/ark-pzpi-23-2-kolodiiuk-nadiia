@@ -56,6 +56,18 @@ public class BookingService : BaseService<BookingService>, IBookingService
                 return Result.Fail<BookingCreationResponse>($"Space with id {req.SpaceId} is not available");
             }
 
+            var subscription = await Context.Subscriptions.FirstOrDefaultAsync((s) =>
+                s.IsActive() && s.UserId == userId && s.SubscriptionPlan.OwnerId == space.OwnerId);
+            if (subscription != null)
+            {
+                var timeDiff = req.EndTime - req.StartTime;
+                var hoursAfterSubscriptionUsage = subscription.HoursUsed - timeDiff.Hours;
+                if (hoursAfterSubscriptionUsage < 0)
+                {
+                    return Result.Fail<BookingCreationResponse>("Can't be paid with subscription");
+                }
+            }
+
             var booking = await CreateBooking();
 
             if (booking is null)
@@ -63,16 +75,25 @@ public class BookingService : BaseService<BookingService>, IBookingService
                 return Result.Fail<BookingCreationResponse>("Invalid duration");
             }
 
-            var paymentDataResult = await _paymentService.CreatePaymentAsync(booking.Id, booking.TotalAmount);
-            if (paymentDataResult.Failure)
+            Result<LiqPayPaymentData> paymentDataResult = null;
+            if (subscription == null)
             {
-                return Result.Fail<BookingCreationResponse>($"{paymentDataResult.Error}");
+                paymentDataResult = await _paymentService.CreatePaymentAsync(booking.Id, booking.TotalAmount);
+                if (paymentDataResult.Failure)
+                {
+                    return Result.Fail<BookingCreationResponse>($"{paymentDataResult.Error}");
+                }
             }
 
             scope.Complete();
 
-            return Result.Success(new BookingCreationResponse
-                { BookingId = booking.Id, LiqPayPaymentData = paymentDataResult.Value });
+            if (subscription == null)
+            {
+                return Result.Success(new BookingCreationResponse
+                    { BookingId = booking.Id, LiqPayPaymentData = paymentDataResult.Value });
+            }
+
+            return Result.Success(new BookingCreationResponse() { BookingId = booking.Id, LiqPayPaymentData = null });
         }
         catch (NpgsqlException e)
         {
@@ -256,10 +277,11 @@ public class BookingService : BaseService<BookingService>, IBookingService
         }
     }
 
-    public async Task<Result<IEnumerable<Booking>>> GetBookingsAsync(BookingFilterRequest req)
+    public async Task<Result<IEnumerable<Booking>>> GetBookingsAsync(int requesterId, BookingFilterRequest req)
     {
         try
         {
+            //todo: check for permission
             var user = await Context.Users.FindAsync(req.UserId);
             Role? parsedRole;
             switch (req.Role)
@@ -314,10 +336,11 @@ public class BookingService : BaseService<BookingService>, IBookingService
         }
     }
 
-    public async Task<Result<Booking>> GetBookingByIdAsync(int id)
+    public async Task<Result<Booking>> GetBookingByIdAsync(int id, int requesterId)
     {
         try
         {
+            //todo: check for permission
             var booking = await Context.Bookings
                 .Include(b => b.Space)
                 .ThenInclude(s => s.Address)
