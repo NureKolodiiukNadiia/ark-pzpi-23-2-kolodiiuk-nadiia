@@ -8,11 +8,11 @@ public interface ISubscriptionService
 {
     Task<Result<SubscriptionCreationResponse>> SubscribeAsync(int userId, int subscriptionPlanId);
 
-    Task<Result<SubscriptionDto>> GetCurrentUserSubscriptionAsync(int userId);
+    Task<Result<IEnumerable<SubscriptionDto>>> GetCurrentUserSubscriptionAsync(int userId);
 
     Task<Result<IEnumerable<SubscriptionInfo>>> GetSubscriptionHistoryAsync(int userId);
 
-    Task<Result<Subscription>> GetSubscriptionByIdAsync(int id);
+    Task<Result<Subscription>> GetSubscriptionByIdAsync(int id, int userId);
 
     Task<Result> ChangeSubscriptionAsync(int currSubscriptionId, int newPlanId, int userId);
 

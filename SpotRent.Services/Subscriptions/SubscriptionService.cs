@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -121,41 +122,41 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
         }
     }
 
-    public async Task<Result<SubscriptionDto>> GetCurrentUserSubscriptionAsync(int userId)
+    public async Task<Result<IEnumerable<SubscriptionDto>>> GetCurrentUserSubscriptionAsync(int userId)
     {
         try
         {
             var user = await Context.Users.FindAsync(userId);
             if (user is null)
             {
-                return Result.Fail<SubscriptionDto>($"No user with id: {userId}");
+                return Result.Fail<IEnumerable<SubscriptionDto>>($"No user with id: {userId}");
             }
 
-            var subscription = await Context.Subscriptions
-                .FirstOrDefaultAsync(s => s.UserId == userId);
-            if (subscription is null)
+            var subscriptions = Context.Subscriptions.Where(IsActive(userId, DateTime.UtcNow));
+
+            var subDtos = new List<SubscriptionDto>();
+            foreach (var subscription in subscriptions)
             {
-                return Result.Fail<SubscriptionDto>($"User with id {userId} is not subscribed");
+                var dto = new SubscriptionDto
+                {
+                    Id = subscription.Id,
+                    SubscriptionPlanId = subscription.SubscriptionPlanId,
+                    Price = subscription.Price,
+                    StartDate = subscription.StartDate,
+                    EndDate = subscription.EndDate,
+                    Status = subscription.Status,
+                    HoursUsed = subscription.HoursUsed,
+                    TotalAmount = subscription.TotalAmount,
+                    PaymentStatus = subscription.PaymentStatus,
+                    PaymentProcessedAt = subscription.PaymentProcessedAt,
+                    PaymentFailureReason = subscription.PaymentFailureReason,
+                    CreatedAt = subscription.CreatedAt,
+                    UpdatedAt = subscription.UpdatedAt,
+                };
+                subDtos.Add(dto);
             }
 
-            var dto = new SubscriptionDto
-            {
-                Id = subscription.Id,
-                SubscriptionPlanId = subscription.SubscriptionPlanId,
-                Price = subscription.Price,
-                StartDate = subscription.StartDate,
-                EndDate = subscription.EndDate,
-                Status = subscription.Status,
-                HoursUsed = subscription.HoursUsed,
-                TotalAmount = subscription.TotalAmount,
-                PaymentStatus = subscription.PaymentStatus,
-                PaymentProcessedAt = subscription.PaymentProcessedAt,
-                PaymentFailureReason = subscription.PaymentFailureReason,
-                CreatedAt = subscription.CreatedAt,
-                UpdatedAt = subscription.UpdatedAt,
-            };
-
-            return Result.Success(dto);
+            return Result.Success(subDtos.AsEnumerable());
         }
         catch (NpgsqlException e)
         {
@@ -163,7 +164,7 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
                 "DB error retrieving current subscription for user {userId}. Error: {error}",
                 userId, e.Message);
 
-            return Result.Fail<SubscriptionDto>($"DB error: {e.Message}.");
+            return Result.Fail<IEnumerable<SubscriptionDto>>($"DB error: {e.Message}.");
         }
         catch (Exception e)
         {
@@ -171,7 +172,8 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
                 "Error retrieving current subscription for user {userId}. Error: {error}",
                 userId, e.Message);
 
-            return Result.Fail<SubscriptionDto>($"Failure retrieving user subscription: {e.Message}.");
+            return Result.Fail<IEnumerable<SubscriptionDto>>(
+                $"Failure retrieving user subscription: {e.Message}.");
         }
     }
 
@@ -215,11 +217,18 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
         }
     }
 
-    public async Task<Result<Subscription>> GetSubscriptionByIdAsync(int id)
+    public async Task<Result<Subscription>> GetSubscriptionByIdAsync(int id, int userId)
     {
         try
         {
-            var subscription = await Context.Subscriptions.FindAsync(id);
+            var subscription = await Context.Subscriptions.Include(s => s.SubscriptionPlan)
+                .FirstOrDefaultAsync(s => s.Id == id);
+            var userValid = (await Context.Users.FirstOrDefaultAsync(u =>
+                subscription.UserId == userId || subscription.SubscriptionPlan.OwnerId == userId)) != null;
+            if (!userValid)
+            {
+                return Result.Fail<Subscription>("User does not have access to this subscription");
+            }
 
             return subscription is null
                 ? Result.Fail<Subscription>($"No subscription plan with id: {id}")
@@ -328,6 +337,23 @@ public class SubscriptionService : BaseService<SubscriptionService>, ISubscripti
         {
             return Result.Fail<LiqPayRefundResponse>($"Error refunding: {e.Message}");
         }
+    }
+
+    private static Expression<Func<Subscription, bool>> IsActive(int userId, DateTime now)
+    {
+        return s =>
+            s.UserId == userId &&
+            (s.EndDate == null || now < s.EndDate) &&
+            s.CancelledAt == null &&
+            (
+                s.PaymentProcessedAt != null ||
+                s.PaymentStatus == PaymentStatus.Paid ||
+                s.PaymentStatus == PaymentStatus.TestPaid
+            ) &&
+            s.HoursUsed <
+            (s.SubscriptionPlan != null
+                ? s.SubscriptionPlan.IncludedHours
+                : int.MaxValue);
     }
 
     private DateTime? CalcEndDate(DateTime startDate, Duration duration)

@@ -28,7 +28,7 @@ public class SubscriptionController : BaseController<SubscriptionController>
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [EndpointSummary("Creates a subscription for a user.")]
     [EndpointDescription("Validates the subscription payload and subscribes the specified user to the requested plan.")]
-    public async Task<ActionResult> CreateSubscriptionAsync([FromBody] CreateSubscriptionDto subscriptionDto)
+    public async Task<ActionResult> CreateSubscriptionAsync(CreateSubscriptionDto subscriptionDto)
     {
         if (!subscriptionDto.IsValid())
         {
@@ -52,19 +52,12 @@ public class SubscriptionController : BaseController<SubscriptionController>
         {
             var result = await _subscriptionService.SubscribeAsync(parsedUserId, subscriptionDto.PlanId);
 
-            result
-                .OnSuccess(() =>
-                {
-                    Log(LogLevel.Information, SubscriptionControllerEventIds.Subscribe,
-                        "Subscription created for user {userId}, plan {planId}.",
-                        parsedUserId, subscriptionDto.PlanId);
-                })
-                .OnFailure(() =>
-                {
-                    Log(LogLevel.Error, SubscriptionControllerEventIds.Subscribe,
-                        "Error creating subscription for user {userId}. Error: {error}",
-                        parsedUserId, result.Error);
-                });
+            result.OnSuccess(() => Log(LogLevel.Information, SubscriptionControllerEventIds.Subscribe,
+                    "Subscription created for user {userId}, plan {planId}.",
+                    parsedUserId, subscriptionDto.PlanId))
+                .OnFailure(() => Log(LogLevel.Error, SubscriptionControllerEventIds.Subscribe,
+                    "Error creating subscription for user {userId}. Error: {error}",
+                    parsedUserId, result.Error));
 
             return result.Failure
                 ? StatusCode(StatusCodes.Status400BadRequest, result.Error)
@@ -74,10 +67,11 @@ public class SubscriptionController : BaseController<SubscriptionController>
         return StatusCode(StatusCodes.Status401Unauthorized);
     }
 
-    [Authorize("User")]
+    [Authorize(Roles = "User, Owner")]
     [HttpGet("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [EndpointSummary("Gets subscription details by identifier.")]
     [EndpointDescription("Validates the subscription ID and returns the mapped subscription information.")]
@@ -88,29 +82,41 @@ public class SubscriptionController : BaseController<SubscriptionController>
             return StatusCode(StatusCodes.Status400BadRequest, "Id is not valid");
         }
 
-        var result = await _subscriptionService.GetSubscriptionByIdAsync(id);
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        Log(LogLevel.Information, AuthControllerEventIds.TokenVerificationAttempt,
+            "Subscription history fetching attempt for user ID: {UserId}", userId);
 
-        result
-            .OnSuccess(() =>
-            {
-                Log(LogLevel.Information, SubscriptionControllerEventIds.GetSubscriptionById,
-                    "Retrieved subscription with id {id}.", id);
-            })
-            .OnFailure(() =>
-            {
-                Log(LogLevel.Error, SubscriptionControllerEventIds.GetSubscriptionById,
-                    "Error retrieving subscription with id {id}. Error: {error}", id, result.Error);
-            });
+        if (string.IsNullOrEmpty(userId))
+        {
+            Log(LogLevel.Warning, AuthControllerEventIds.TokenVerificationNoUserId,
+                "Subscription history fetching failed: user ID not found in claims");
 
-        return result.Failure
-            ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
-            : StatusCode(StatusCodes.Status200OK, SubscriptionDto.MapSubscription(result.Value));
+            return Unauthorized();
+        }
+
+        var isParsed = int.TryParse(userId, out var parsedUserId);
+        if (isParsed)
+        {
+            var result = await _subscriptionService.GetSubscriptionByIdAsync(id, parsedUserId);
+
+            result.OnSuccess(() => Log(LogLevel.Information, SubscriptionControllerEventIds.GetSubscriptionById,
+                    "Retrieved subscription with id {id}.", id))
+                .OnFailure(() => Log(LogLevel.Error, SubscriptionControllerEventIds.GetSubscriptionById,
+                    "Error retrieving subscription with id {id}. Error: {error}", id, result.Error));
+
+            return result.Failure
+                ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
+                : StatusCode(StatusCodes.Status200OK, SubscriptionDto.MapSubscription(result.Value));
+        }
+
+        return StatusCode(StatusCodes.Status401Unauthorized);
     }
 
-    [Authorize("User")]
+    [Authorize(Roles = "User")]
     [HttpGet("history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [EndpointSummary("Retrieves the subscription history for a user.")]
     [EndpointDescription("Validates the user identifier and fetches all past subscriptions associated with the user.")]
@@ -133,18 +139,11 @@ public class SubscriptionController : BaseController<SubscriptionController>
         {
             var result = await _subscriptionService.GetSubscriptionHistoryAsync(parsedUserId);
 
-            result
-                .OnSuccess(() =>
-                {
-                    Log(LogLevel.Information, SubscriptionControllerEventIds.GetSubscriptionHistory,
-                        "Retrieved subscription history for user {userId}.", parsedUserId);
-                })
-                .OnFailure(() =>
-                {
-                    Log(LogLevel.Error, SubscriptionControllerEventIds.GetSubscriptionHistory,
-                        "Error retrieving subscription history for user {userId}. Error: {error}",
-                        parsedUserId, result.Error);
-                });
+            result.OnSuccess(() => Log(LogLevel.Information, SubscriptionControllerEventIds.GetSubscriptionHistory,
+                    "Retrieved subscription history for user {userId}.", parsedUserId))
+                .OnFailure(() => Log(LogLevel.Error, SubscriptionControllerEventIds.GetSubscriptionHistory,
+                    "Error retrieving subscription history for user {userId}. Error: {error}",
+                    parsedUserId, result.Error));
 
             return result.Failure
                 ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
@@ -187,17 +186,11 @@ public class SubscriptionController : BaseController<SubscriptionController>
             var result = await _subscriptionService.GetCurrentUserSubscriptionAsync(parsedUserId);
 
             result
-                .OnSuccess(() =>
-                {
-                    Log(LogLevel.Information, SubscriptionControllerEventIds.GetMySubscription,
-                        "Retrieved current subscription for user {userId}.", parsedUserId);
-                })
-                .OnFailure(() =>
-                {
-                    Log(LogLevel.Error, SubscriptionControllerEventIds.GetMySubscription,
-                        "Error retrieving current subscription for user {userId}. Error: {error}",
-                        parsedUserId, result.Error);
-                });
+                .OnSuccess(() => Log(LogLevel.Information, SubscriptionControllerEventIds.GetMySubscription,
+                    "Retrieved current subscription for user {userId}.", parsedUserId))
+                .OnFailure(() => Log(LogLevel.Error, SubscriptionControllerEventIds.GetMySubscription,
+                    "Error retrieving current subscription for user {userId}. Error: {error}",
+                    parsedUserId, result.Error));
 
             return result.Failure
                 ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
@@ -213,7 +206,8 @@ public class SubscriptionController : BaseController<SubscriptionController>
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [EndpointSummary("Changes an existing subscription to a new plan.")]
-    [EndpointDescription("Validates both identifiers and instructs the service to move the subscription to the provided plan.")]
+    [EndpointDescription(
+        "Validates both identifiers and instructs the service to move the subscription to the provided plan.")]
     public async Task<ActionResult> ChangeSubscriptionAsync(int subscriptionId, int newPlanId)
     {
         if (subscriptionId < 1 || newPlanId < 1)
@@ -238,19 +232,12 @@ public class SubscriptionController : BaseController<SubscriptionController>
         {
             var result = await _subscriptionService.ChangeSubscriptionAsync(subscriptionId, newPlanId, parsedUserId);
 
-            result
-                .OnSuccess(() =>
-                {
-                    Log(LogLevel.Information, SubscriptionControllerEventIds.ChangeSubscription,
-                        "Changed subscription {subscriptionId} to plan {newPlanId}.", subscriptionId,
-                        newPlanId);
-                })
-                .OnFailure(() =>
-                {
-                    Log(LogLevel.Error, SubscriptionControllerEventIds.ChangeSubscription,
-                        "Error changing subscription {subscriptionId} to plan {newPlanId}. Error: {error}",
-                        subscriptionId, newPlanId, result.Error);
-                });
+            result.OnSuccess(() => Log(LogLevel.Information, SubscriptionControllerEventIds.ChangeSubscription,
+                    "Changed subscription {subscriptionId} to plan {newPlanId}.", subscriptionId,
+                    newPlanId))
+                .OnFailure(() => Log(LogLevel.Error, SubscriptionControllerEventIds.ChangeSubscription,
+                    "Error changing subscription {subscriptionId} to plan {newPlanId}. Error: {error}",
+                    subscriptionId, newPlanId, result.Error));
 
             return result.Failure
                 ? StatusCode(StatusCodes.Status400BadRequest, result.Error)
@@ -291,19 +278,12 @@ public class SubscriptionController : BaseController<SubscriptionController>
         {
             var result = await _subscriptionService.CancelSubscriptionAsync(subscriptionId, parsedUserId);
 
-            result
-                .OnSuccess(() =>
-                {
-                    Log(LogLevel.Information, SubscriptionControllerEventIds.CancelSubscription,
-                        "Cancelled subscription {subscriptionId} for user {userId}.",
-                        subscriptionId, parsedUserId);
-                })
-                .OnFailure(() =>
-                {
-                    Log(LogLevel.Error, SubscriptionControllerEventIds.CancelSubscription,
-                        "Error cancelling subscription {subscriptionId} for user {userId}. Error: {error}",
-                        subscriptionId, parsedUserId, result.Error);
-                });
+            result.OnSuccess(() => Log(LogLevel.Information, SubscriptionControllerEventIds.CancelSubscription,
+                    "Cancelled subscription {subscriptionId} for user {userId}.",
+                    subscriptionId, parsedUserId))
+                .OnFailure(() => Log(LogLevel.Error, SubscriptionControllerEventIds.CancelSubscription,
+                    "Error cancelling subscription {subscriptionId} for user {userId}. Error: {error}",
+                    subscriptionId, parsedUserId, result.Error));
 
             return result.Failure
                 ? StatusCode(StatusCodes.Status400BadRequest, result.Error)

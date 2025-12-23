@@ -17,7 +17,7 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
     public SubscriptionPlanController(
         ISubscriptionPlanService subscriptionPlanService,
         ILogger<SubscriptionPlanController> logger)
-    : base(logger)
+        : base(logger)
     {
         _subscriptionPlanService = subscriptionPlanService;
     }
@@ -37,7 +37,7 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
         {
             Log(LogLevel.Warning, AuthControllerEventIds.TokenVerificationNoUserId, "User ID not found in claims");
 
-            return Unauthorized();
+            return StatusCode(StatusCodes.Status401Unauthorized);
         }
 
         var isParsed = int.TryParse(ownerId, out var parsedOwnerId);
@@ -67,10 +67,10 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
         {
             return StatusCode(StatusCodes.Status400BadRequest, result.Error);
         }
-    
+
         return StatusCode(StatusCodes.Status200OK, result.Value);
     }
-    
+
     [HttpGet("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -83,7 +83,7 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
         {
             return StatusCode(StatusCodes.Status400BadRequest, result.Error);
         }
-    
+
         return StatusCode(StatusCodes.Status200OK, result.Value);
     }
 
@@ -93,8 +93,10 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [EndpointSummary("Updates an existing subscription plan.")]
-    [EndpointDescription("Logs the update attempt, validates payload data, and updates the specified subscription plan.")]
-    public async Task<ActionResult> UpdateSubscriptionPlanAsync(int id, [FromBody] UpdateSubscriptionPlanDto subscriptionPlanDto)
+    [EndpointDescription(
+        "Logs the update attempt, validates payload data, and updates the specified subscription plan.")]
+    public async Task<ActionResult> UpdateSubscriptionPlanAsync(int id,
+        [FromBody] UpdateSubscriptionPlanDto subscriptionPlanDto)
     {
         if (id < 1 || subscriptionPlanDto is null)
         {
@@ -107,38 +109,29 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
         {
             Log(LogLevel.Warning, AuthControllerEventIds.TokenVerificationNoUserId, "User ID not found in claims");
 
-            return Unauthorized();
+            return StatusCode(StatusCodes.Status401Unauthorized);
         }
 
         var isParsed = int.TryParse(ownerId, out var parsedOwnerId);
         if (isParsed)
         {
-            var infoStartUpdating = LoggerMessage.Define<int>(
-                LogLevel.Information,
-                SubscriptionPlanControllerEventIds.UpdateSubscriptionPlanEvent,
-                "Updating subscription plan with id {subscriptionPlanId}.");
-            infoStartUpdating(Logger, id, null);
+            Log(LogLevel.Information, SubscriptionPlanControllerEventIds.DeactivateSubscriptionPlanEvent,
+                "Updating subscription plan with id {subscriptionPlanId}.", id);
 
             var result = await _subscriptionPlanService.UpdateSubscriptionPlanAsync(
                 id, subscriptionPlanDto, parsedOwnerId);
 
+
             result
-                .OnSuccess(() =>
-                {
-                    var infoUpdated = LoggerMessage.Define<int>(
-                        LogLevel.Information,
-                        SubscriptionPlanControllerEventIds.UpdateSubscriptionPlanEvent,
-                        "Updated subscription plan with id {subscriptionPlanId}.");
-                    infoUpdated(Logger, id, null);
-                })
-                .OnFailure(() =>
-                {
-                    var failureUpdating = LoggerMessage.Define<int, string>(
-                        LogLevel.Error,
-                        SubscriptionPlanControllerEventIds.UpdateSubscriptionPlanEvent,
-                        "Error updating subscription plan with id {subscriptionPlanId}. Error: {error}");
-                    failureUpdating(Logger, id, result.Error, null);
-                });
+                .OnSuccess(() => Log(
+                    LogLevel.Information,
+                    SubscriptionPlanControllerEventIds.UpdateSubscriptionPlanEvent,
+                    "Updated subscription plan with id {subscriptionPlanId}.", id))
+                .OnFailure(() => Log(
+                    LogLevel.Error,
+                    SubscriptionPlanControllerEventIds.UpdateSubscriptionPlanEvent,
+                    "Error updating subscription plan with id {subscriptionPlanId}. Error: {error}",
+                    id, result.Error));
 
             return result.Failure
                 ? StatusCode(StatusCodes.Status400BadRequest, result.Error)
@@ -162,50 +155,47 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
             return StatusCode(StatusCodes.Status400BadRequest, "Id is less than 1");
         }
 
-        var infoStartDeleting = LoggerMessage.Define<int>(
+        Log(
             LogLevel.Information,
             SubscriptionPlanControllerEventIds.DeleteSubscriptionPlanEvent,
-            "Deleting subscription plan with id {subscriptionPlanId}.");
-        infoStartDeleting(Logger, subscriptionPlanId, null);
+            "Deleting subscription plan with id {subscriptionPlanId}.",
+            subscriptionPlanId);
 
         var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (string.IsNullOrEmpty(ownerId))
         {
-            Log(LogLevel.Warning, AuthControllerEventIds.TokenVerificationNoUserId, "User ID not found in claims");
+            Log(
+                LogLevel.Warning,
+                AuthControllerEventIds.TokenVerificationNoUserId,
+                "User ID not found in claims");
 
-            return Unauthorized();
+            return StatusCode(StatusCodes.Status401Unauthorized);
         }
 
-        var isParsed = int.TryParse(ownerId, out _);
-        if (isParsed)
+        if (!int.TryParse(ownerId, out _))
         {
-            var result = await _subscriptionPlanService.DeleteSubscriptionPlanAsync(subscriptionPlanId);
-
-            result
-                .OnSuccess(() =>
-                {
-                    var infoDeleted = LoggerMessage.Define<int>(
-                        LogLevel.Information,
-                        SubscriptionPlanControllerEventIds.DeleteSubscriptionPlanEvent,
-                        "Deleted subscription plan with id {subscriptionPlanId}.");
-                    infoDeleted(Logger, subscriptionPlanId, null);
-                })
-                .OnFailure(() =>
-                {
-                    var failureDeleting = LoggerMessage.Define<int, string>(
-                        LogLevel.Error,
-                        SubscriptionPlanControllerEventIds.DeleteSubscriptionPlanEvent,
-                        "Error deleting subscription plan with id {subscriptionPlanId}. Error: {error}");
-                    failureDeleting(Logger, subscriptionPlanId, result.Error, null);
-                });
-
-            return result.Failure
-                ? StatusCode(StatusCodes.Status400BadRequest, result.Error)
-                : StatusCode(StatusCodes.Status200OK);
+            return StatusCode(StatusCodes.Status401Unauthorized);
         }
 
-        return StatusCode(StatusCodes.Status401Unauthorized);
+        var result = await _subscriptionPlanService.DeleteSubscriptionPlanAsync(subscriptionPlanId);
+
+        result
+            .OnSuccess(() => Log(
+                LogLevel.Information,
+                SubscriptionPlanControllerEventIds.DeleteSubscriptionPlanEvent,
+                "Deleted subscription plan with id {subscriptionPlanId}.",
+                subscriptionPlanId))
+            .OnFailure(() => Log(
+                LogLevel.Error,
+                SubscriptionPlanControllerEventIds.DeleteSubscriptionPlanEvent,
+                "Error deleting subscription plan with id {subscriptionPlanId}. Error: {error}",
+                subscriptionPlanId,
+                result.Error));
+
+        return result.Failure
+            ? StatusCode(StatusCodes.Status400BadRequest, result.Error)
+            : StatusCode(StatusCodes.Status200OK);
     }
 
     [Authorize(Roles = "Owner, Admin")]
@@ -222,11 +212,9 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
             return StatusCode(StatusCodes.Status400BadRequest, "Id is less than 1");
         }
 
-        var infoStartDeactivating = LoggerMessage.Define<int>(
-            LogLevel.Information,
-            SubscriptionPlanControllerEventIds.DeactivateSubscriptionPlanEvent,
-            "Deactivating subscription plan with id {subscriptionPlanId}.");
-        infoStartDeactivating(Logger, subscriptionPlanId, null);
+        Log(LogLevel.Information, SubscriptionPlanControllerEventIds.DeactivateSubscriptionPlanEvent,
+            "Deactivating subscription plan with id {subscriptionPlanId}.",
+            subscriptionPlanId);
 
         var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -234,7 +222,7 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
         {
             Log(LogLevel.Warning, AuthControllerEventIds.TokenVerificationNoUserId, "User ID not found in claims");
 
-            return Unauthorized();
+            return StatusCode(StatusCodes.Status401Unauthorized);
         }
 
         var isParsed = int.TryParse(ownerId, out _);
@@ -242,23 +230,13 @@ public class SubscriptionPlanController : BaseController<SubscriptionPlanControl
         {
             var result = await _subscriptionPlanService.DeactivateSubscriptionPlanAsync(subscriptionPlanId);
 
-            result
-                .OnSuccess(() =>
-                {
-                    var infoDeactivated = LoggerMessage.Define<int>(
-                        LogLevel.Information,
-                        SubscriptionPlanControllerEventIds.DeactivateSubscriptionPlanEvent,
-                        "Deactivated subscription plan with id {subscriptionPlanId}.");
-                    infoDeactivated(Logger, subscriptionPlanId, null);
-                })
-                .OnFailure(() =>
-                {
-                    var failureDeactivating = LoggerMessage.Define<int, string>(
-                        LogLevel.Error,
-                        SubscriptionPlanControllerEventIds.DeactivateSubscriptionPlanEvent,
-                        "Error deactivating subscription plan with id {subscriptionPlanId}. Error: {error}");
-                    failureDeactivating(Logger, subscriptionPlanId, result.Error, null);
-                });
+            result.OnSuccess(() => Log(
+                    LogLevel.Information, SubscriptionPlanControllerEventIds.DeactivateSubscriptionPlanEvent,
+                    "Deactivated subscription plan with id {subscriptionPlanId}.", subscriptionPlanId))
+                .OnFailure(() => Log(
+                    LogLevel.Error, SubscriptionPlanControllerEventIds.DeactivateSubscriptionPlanEvent,
+                    "Error deactivating subscription plan with id {subscriptionPlanId}. Error: {error}",
+                    subscriptionPlanId, result.Error));
 
             return result.Failure
                 ? StatusCode(StatusCodes.Status400BadRequest, result.Error)
