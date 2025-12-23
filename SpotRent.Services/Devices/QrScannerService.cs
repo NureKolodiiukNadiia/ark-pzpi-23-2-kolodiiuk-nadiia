@@ -59,6 +59,46 @@ public class QrScannerService : BaseService<QrScannerService>, IQrScannerService
         }
     }
 
+    public async Task<Result<string>> GenerateQrCodeOwner(int deviceId, int userId)
+    {
+        try
+        {
+            var deviceExists = await Context.Devices.AnyAsync(d => d.Id == deviceId);
+            if (!deviceExists)
+            {
+                return Result.Fail<string>($"Device with id {deviceId} does not exist");
+            }
+
+            var booking = await Context.Bookings.FindAsync(userId);
+            if (booking is null)
+            {
+                return Result.Fail<string>($"Booking with id {userId} does not exist");
+            }
+
+            var payload = new
+            {
+                DeviceId = deviceId,
+                BookingId = userId,
+                ExpirationUtc = booking.EndTime
+            };
+
+            var json = System.Text.Json.JsonSerializer.Serialize(payload);
+
+            var encrypted = Encrypt(json);
+
+            return Result.Success(encrypted);
+        }
+        catch (Exception e)
+        {
+            Log(LogLevel.Error, QrScannerServiceEventIds.ErrorGeneratingQrCode,
+                "Error generating QR code for device {deviceId} and booking {bookingId}. Error: {e.Message}",
+                deviceId, userId, e.Message);
+
+            return Result.Fail<string>(
+                $"Error generating QR code for device {deviceId} and booking {userId}. Error: {e.Message}");
+        }
+    }
+
     public async Task<Result<bool>> ValidateQrCode(string qrCode, int deviceId, int bookingId)
     {
         try
