@@ -56,16 +56,20 @@ public class BookingService : BaseService<BookingService>, IBookingService
                 return Result.Fail<BookingCreationResponse>($"Space with id {req.SpaceId} is not available");
             }
 
-            var subscription = await Context.Subscriptions.FirstOrDefaultAsync((s) =>
-                s.IsActive() && s.UserId == userId && s.SubscriptionPlan.OwnerId == space.OwnerId);
+            var now = DateTime.UtcNow;
+            var subscription = await Context.Subscriptions.Include(s => s.SubscriptionPlan).FirstOrDefaultAsync(
+                IsActive(userId, space.OwnerId, now));
             if (subscription != null)
             {
                 var timeDiff = req.EndTime - req.StartTime;
-                var hoursAfterSubscriptionUsage = subscription.HoursUsed - timeDiff.Hours;
+                var hoursAfterSubscriptionUsage = subscription.SubscriptionPlan.IncludedHours -
+                                                  (subscription.HoursUsed + timeDiff.Hours);
                 if (hoursAfterSubscriptionUsage < 0)
                 {
                     return Result.Fail<BookingCreationResponse>("Can't be paid with subscription");
                 }
+
+                subscription.HoursUsed = subscription.SubscriptionPlan.IncludedHours - hoursAfterSubscriptionUsage;
             }
 
             var booking = await CreateBooking();
@@ -136,6 +140,7 @@ public class BookingService : BaseService<BookingService>, IBookingService
             return booking;
         }
     }
+
 
     public async Task<Result<IEnumerable<Booking>>> GetUserBookingsHistoryAsync(int userId)
     {
@@ -307,9 +312,9 @@ public class BookingService : BaseService<BookingService>, IBookingService
                 .ThenInclude(s => s.Address)
                 .Where(BuildCondition());
             req.OrderBy.Invoke(filtered);
-            await filtered.Skip(req.SkipCount).Take(req.TakeCount ?? 0).ToListAsync();
+            var resSet = await filtered.Skip(req.SkipCount).Take(req.TakeCount ?? 0).ToListAsync();
 
-            return Result.Success<IEnumerable<Booking>>(filtered);
+            return Result.Success<IEnumerable<Booking>>(resSet);
         }
         catch (NpgsqlException e)
         {
@@ -366,7 +371,6 @@ public class BookingService : BaseService<BookingService>, IBookingService
         }
     }
 
-
     public async Task<Result> CancelBookingAsync(int bookingId)
     {
         try
@@ -405,5 +409,23 @@ public class BookingService : BaseService<BookingService>, IBookingService
         {
             return Result.Fail<LiqPayRefundResponse>($"Error refunding: {e.Message}");
         }
+    }
+
+    private static Expression<Func<Subscription, bool>> IsActive(int userId, int ownerId, DateTime now)
+    {
+        return s => s.UserId == userId
+                    && s.SubscriptionPlan.OwnerId == ownerId
+                    && s.UserId == userId
+                    && (s.EndDate == null || now < s.EndDate)
+                    && s.CancelledAt == null
+                    && (
+                        s.PaymentProcessedAt != null ||
+                        s.PaymentStatus == PaymentStatus.Paid ||
+                        s.PaymentStatus == PaymentStatus.TestPaid
+                    )
+                    && s.HoursUsed <
+                    (s.SubscriptionPlan != null
+                        ? s.SubscriptionPlan.IncludedHours
+                        : int.MaxValue);
     }
 }

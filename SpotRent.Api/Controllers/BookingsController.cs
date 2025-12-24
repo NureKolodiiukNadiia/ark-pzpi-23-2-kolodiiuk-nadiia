@@ -30,7 +30,7 @@ public class BookingsController : BaseController<BookingsController>
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [HttpPost("{userId:int}")]
+    [HttpPost]
     [EndpointSummary("Creates a new booking for a user.")]
     [EndpointDescription(
         "Validates the booking payload for the specified user and persists the reservation when the request is valid.")]
@@ -83,7 +83,7 @@ public class BookingsController : BaseController<BookingsController>
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [HttpGet("users/{userId}/history")]
+    [HttpGet("users/history")]
     [EndpointSummary("Gets the historical bookings for a user.")]
     [EndpointDescription(
         "Validates the user identifier and returns the full booking history including pagination metadata.")]
@@ -148,7 +148,7 @@ public class BookingsController : BaseController<BookingsController>
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [HttpGet("users/{userId}/active")]
+    [HttpGet("users/active")]
     [EndpointSummary("Lists active bookings for a user.")]
     [EndpointDescription(
         "Returns all in-progress or upcoming bookings for the specified user after validating the identifier.")]
@@ -212,7 +212,7 @@ public class BookingsController : BaseController<BookingsController>
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [HttpGet("owners/{ownerId}")]
+    [HttpGet("owners")]
     [Authorize(Roles = "Owner")]
     [EndpointSummary("Gets bookings for an owner across their spaces.")]
     [EndpointDescription(
@@ -277,7 +277,7 @@ public class BookingsController : BaseController<BookingsController>
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [HttpGet("owners/{ownerId}/active")]
+    [HttpGet("owners/active")]
     [Authorize(Roles = "Owner")]
     [EndpointSummary("Gets active bookings for an owner.")]
     [EndpointDescription(
@@ -342,7 +342,7 @@ public class BookingsController : BaseController<BookingsController>
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [HttpGet("filter/{userId:int}")]
+    [HttpGet("filter")]
     [Authorize(Roles = "User, Owner")]
     [EndpointSummary("Filters bookings with paging and sorting options.")]
     [EndpointDescription(
