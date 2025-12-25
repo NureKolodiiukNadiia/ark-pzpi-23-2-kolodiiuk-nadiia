@@ -42,25 +42,30 @@ public class AccessLogController : BaseController<AccessLogController>
             return StatusCode(StatusCodes.Status400BadRequest, "Request payload is not valid");
         }
 
-        var result = await _accessLogService.LogAccessAsync(
-            request.UserId,
-            request.DeviceId,
-            request.AccessType,
-            request.BookingId.Value,
-            request.IsSuccessful,
-            request.ErrorMessage);
+        if (request.BookingId != null)
+        {
+            var result = await _accessLogService.LogAccessAsync(
+                request.UserId,
+                request.DeviceId,
+                request.AccessType,
+                request.BookingId.Value,
+                request.IsSuccessful,
+                request.ErrorMessage);
 
-        result.OnSuccess(() =>
-                Log(LogLevel.Information, AccessLogControllerEventIds.CreateAccessLogSuccess,
-                    "Access log entry created with id {AccessLogId}", result.Value))
-            .OnFailure(() =>
-                Log(LogLevel.Error, AccessLogControllerEventIds.CreateAccessLogFailure,
-                    "Failed to create access log entry for user {UserId}, device {DeviceId}. Error: {Error}",
-                    request.UserId, request.DeviceId, result.Error));
+            result.OnSuccess(() =>
+                    Log(LogLevel.Information, AccessLogControllerEventIds.CreateAccessLogSuccess,
+                        "Access log entry created with id {AccessLogId}", result.Value))
+                .OnFailure(() =>
+                    Log(LogLevel.Error, AccessLogControllerEventIds.CreateAccessLogFailure,
+                        "Failed to create access log entry for user {UserId}, device {DeviceId}. Error: {Error}",
+                        request.UserId, request.DeviceId, result.Error));
 
-        return result.Failure
-            ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
-            : StatusCode(StatusCodes.Status201Created, new { Id = result.Value });
+            return result.Failure
+                ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
+                : StatusCode(StatusCodes.Status201Created, new { Id = result.Value });
+        }
+
+        return StatusCode(StatusCodes.Status400BadRequest, "Booking id is required");
     }
 
     [Authorize("Owner")]

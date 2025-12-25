@@ -3,6 +3,20 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <ESP32Servo.h>
+#include <device.h>
+
+// [server]
+const std::string host = "http://localhost:5041/api";
+
+// [device]
+const int id = 1;
+const int default_user_id = 101;
+const int default_booking_id = 2001;
+const int register_on_start = true;
+
+// [lock]
+const std::string initial_state = "locked";
+const int relock_delay_ms = 2000;
 
 const int servoPin = 14;
 const int unlockPosition = 0;
@@ -13,21 +27,35 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 bool locked = true;
 
+Device *device;
+
 void updateLockStatus() {
   lcd.clear();
   lcd.print(locked ? "Door Locked" : "Door Unlocked");
 }
 
 void unlockDoor() {
-  locked = false;
-  lockServo.write(unlockPosition);
-  updateLockStatus();
+  bool res = device.unlock();
+  if (res) {
+    locked = false;
+    lockServo.write(unlockPosition);
+    updateLockStatus();
+  }
+  else {
+    lcd.print("Couldn't unlock");
+  }
 }
 
 void lockDoor() {
-  locked = true;
-  lockServo.write(lockPosition);
-  updateLockStatus();
+  bool res = device.lock();
+  if (res) {
+    locked = true;
+    lockServo.write(lockPosition);
+    updateLockStatus();
+  }
+  else {
+    lcd.print("Couldn't lock");
+  }
 }
 
 void handleQRCode(String qrData) {
@@ -46,7 +74,7 @@ void handleQRCode(String qrData) {
 }
 
 void setup() {
-  delay(2000);                 // <-- CRITICAL for Wokwi
+  delay(2000);
   Serial.begin(9600);
 
   lockServo.attach(servoPin);
@@ -54,9 +82,21 @@ void setup() {
   lcd.init();
   lcd.backlight();
 
+
+  device = new Device();
+  if (device == nullptr) {
+    return -1;
+  }
+  device.addSmartLock();
+
+  bool res = device.registerDevice();
+  if (res == false) {
+    return -2;
+  }
+
   lockDoor();
 
-  Serial.println("READY");     // <-- confirms input mode
+  Serial.println("READY");
 }
 
 void loop() {

@@ -1,7 +1,6 @@
 #include "device.h"
 
 #include <chrono>
-#include <fmt/core.h>
 #include <iostream>
 #include <thread>
 #include <cpr/cpr.h>
@@ -38,11 +37,12 @@ std::string escapeJson(const std::string& value) {
 }
 } // namespace
 
-Device::Device(const toml::table& config)
-    : config_table(config),
-      device_id(config["device"]["id"].value_or(1)),
-      api_host(config["server"]["host"].value_or("")),
-      auto_register(config["device"]["register_on_start"].value_or(true)) {
+Device::Device(int id, std::string host, bool register_on_start, int default_user_id, int default_booking_id)
+    : device_id(id),
+      api_host(host),
+      auto_register(register_on_start),
+      default_user_id(default_user_id),
+      default_booking_id(default_booking_id) {
 
     if (api_host.empty()) {
 
@@ -53,20 +53,16 @@ Device::Device(const toml::table& config)
 Device::~Device() = default;
 
 void Device::addSmartLock() {
-
     smart_lock = std::make_unique<SmartLock>(config_table);
 }
 
 bool Device::lock() {
-
     if (!smart_lock) {
-
         return false;
     }
 
     bool result = smart_lock->lock();
     if (result) {
-
         updateDeviceStatus(smart_lock->status(), true);
     }
 
@@ -74,82 +70,19 @@ bool Device::lock() {
 }
 
 bool Device::unlock() {
-
     if (!smart_lock) {
-
         return false;
     }
+
     bool result = smart_lock->unlock();
     if (result) {
-
         updateDeviceStatus(smart_lock->status(), true);
     }
 
     return result;
 }
 
-void Device::run() {
-    if (!smart_lock) {
-
-        addSmartLock();
-    }
-
-    if (auto_register && !registerDevice()) {
-
-        std::cerr << "[WARN] Device registration failed.\n";
-    }
-
-    updateDeviceStatus(smart_lock->status(), true);
-
-    struct ManualScan {
-
-        std::string qrCode;
-    };
-
-    auto handleScan = [&](const ManualScan& scan) {
-
-        std::cout << "[INFO] Processing scan for user with QR token '" << scan.qrCode << "'\n";
-
-        bool unlockResult = false;
-        std::string errorMessage;
-
-        if (unlockResult && smart_lock->relockDelayMs() > 0) {
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(smart_lock->relockDelayMs()));
-            lock();
-        }
-    };
-
-    std::cout << "[CLI] Enter QR tokens manually (type 'exit' to quit)." << std::endl;
-    std::string input;
-    while (true) {
-
-        std::cout << "QR> " << std::flush;
-        if (!std::getline(std::cin, input)) {
-
-            break;
-        }
-
-        if (input == "exit" || input == "quit") {
-
-            break;
-        }
-
-        if (input.empty()) {
-
-            continue;
-        }
-
-        handleScan(ManualScan{
-            .qrCode = input,
-        });
-    }
-
-    updateDeviceStatus(smart_lock->status(), true);
-}
-
 bool Device::registerDevice() const {
-
     std::string payload = fmt::format(R"({{"deviceId": {}}})", device_id);
 
     return postJson("/IoT/register", payload);
@@ -177,7 +110,6 @@ void Device::logEvent(int userId, int bookingId, int accessType,
 }
 
 void Device::logEventOwner(int userId, int accessType, bool isSuccessful, const std::string& errorMessage) const {
-
     std::string payload = fmt::format(
         R"({{"userId": {}, "deviceId": {}, "accessType": {}, "isSuccessful": {}, "errorMessage": "{}"}})",
         userId,

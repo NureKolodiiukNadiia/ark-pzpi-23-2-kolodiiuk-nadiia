@@ -138,7 +138,7 @@ public static class AttributeHelper
         var attrEqual = Expression.Equal(attrProp, attrConst);
 
         var valueProp = Expression.Property(avParam, nameof(AttributeValue.Value));
-        Expression? orChain = null;
+        Expression orChain = null;
         foreach (var val in values)
         {
             var valConst = Expression.Constant(val);
