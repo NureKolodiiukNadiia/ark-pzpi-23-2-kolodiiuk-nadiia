@@ -19,7 +19,7 @@ public class AccessLogController : BaseController<AccessLogController>
         _accessLogService = accessLogService;
     }
 
-    [Authorize(Roles = "User")]
+    // [Authorize(Roles = "User")]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -68,7 +68,7 @@ public class AccessLogController : BaseController<AccessLogController>
         return StatusCode(StatusCodes.Status400BadRequest, "Booking id is required");
     }
 
-    [Authorize("Owner")]
+    // [Authorize("Owner")]
     [HttpPost("owner")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -110,7 +110,7 @@ public class AccessLogController : BaseController<AccessLogController>
             : StatusCode(StatusCodes.Status201Created, new { Id = result.Value });
     }
 
-    [Authorize(Roles = "Owner")]
+    // [Authorize(Roles = "Owner")]
     [HttpGet("space/{spaceId:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -146,7 +146,7 @@ public class AccessLogController : BaseController<AccessLogController>
             : StatusCode(StatusCodes.Status200OK, result.Value);
     }
 
-    [Authorize(Roles = "Owner")]
+    // [Authorize(Roles = "Owner")]
     [HttpGet("owner/{ownerId:int}")]
     public async Task<IActionResult> GetOwnerLogs(int ownerId)
     {
@@ -176,7 +176,7 @@ public class AccessLogController : BaseController<AccessLogController>
             : StatusCode(StatusCodes.Status200OK, result.Value);
     }
 
-    [Authorize(Roles = "User")]
+    // [Authorize(Roles = "User")]
     [HttpGet("user/{userId:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -212,7 +212,7 @@ public class AccessLogController : BaseController<AccessLogController>
             : StatusCode(StatusCodes.Status200OK, result.Value);
     }
 
-    [Authorize(Roles = "User")]
+    // [Authorize(Roles = "User")]
     [HttpGet("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

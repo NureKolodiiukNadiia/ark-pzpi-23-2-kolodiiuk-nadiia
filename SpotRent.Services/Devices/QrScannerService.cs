@@ -19,16 +19,10 @@ public class QrScannerService : BaseService<QrScannerService>, IQrScannerService
     {
     }
 
-    public async Task<Result<string>> GenerateQrCode(int deviceId, int bookingId)
+    public async Task<Result<string>> GenerateQrCode(int bookingId)
     {
         try
         {
-            var deviceExists = await Context.Devices.AnyAsync(d => d.Id == deviceId);
-            if (!deviceExists)
-            {
-                return Result.Fail<string>($"Device with id {deviceId} does not exist");
-            }
-
             var booking = await Context.Bookings.FindAsync(bookingId);
             if (booking is null)
             {
@@ -37,7 +31,6 @@ public class QrScannerService : BaseService<QrScannerService>, IQrScannerService
 
             var payload = new
             {
-                DeviceId = deviceId,
                 BookingId = bookingId,
                 ExpirationUtc = booking.EndTime
             };
@@ -51,35 +44,35 @@ public class QrScannerService : BaseService<QrScannerService>, IQrScannerService
         catch (Exception e)
         {
             Log(LogLevel.Error, QrScannerServiceEventIds.ErrorGeneratingQrCode,
-                "Error generating QR code for device {deviceId} and booking {bookingId}. Error: {e.Message}",
-                deviceId, bookingId, e.Message);
+                "Error generating QR code for booking {bookingId}. Error: {e.Message}",
+               bookingId, e.Message);
 
             return Result.Fail<string>(
-                $"Error generating QR code for device {deviceId} and booking {bookingId}. Error: {e.Message}");
+                $"Error generating QR code for booking {bookingId}. Error: {e.Message}");
         }
     }
 
-    public async Task<Result<string>> GenerateQrCodeOwner(int deviceId, int userId)
+    public async Task<Result<string>> GenerateQrCodeOwner(int spaceId, int userId)
     {
         try
         {
-            var deviceExists = await Context.Devices.AnyAsync(d => d.Id == deviceId);
-            if (!deviceExists)
+            var spaceExists = await Context.Spaces.AnyAsync(s => s.Id == spaceId);
+            if (!spaceExists)
             {
-                return Result.Fail<string>($"Device with id {deviceId} does not exist");
+                return Result.Fail<string>($"Space with id {spaceId} does not exist");
             }
 
-            var booking = await Context.Bookings.FindAsync(userId);
-            if (booking is null)
+            var user = await Context.Users.FindAsync(userId);
+            if (user is null)
             {
-                return Result.Fail<string>($"Booking with id {userId} does not exist");
+                return Result.Fail<string>($"User with id {userId} does not exist");
             }
 
             var payload = new
             {
-                DeviceId = deviceId,
+                SpaceId = spaceId,
                 BookingId = userId,
-                ExpirationUtc = booking.EndTime
+                ExpirationUtc = DateTime.UtcNow + new TimeSpan(3, 0, 0)
             };
 
             var json = System.Text.Json.JsonSerializer.Serialize(payload);
@@ -91,15 +84,15 @@ public class QrScannerService : BaseService<QrScannerService>, IQrScannerService
         catch (Exception e)
         {
             Log(LogLevel.Error, QrScannerServiceEventIds.ErrorGeneratingQrCode,
-                "Error generating QR code for device {deviceId} and booking {bookingId}. Error: {e.Message}",
-                deviceId, userId, e.Message);
+                "Error generating QR code for space {spaceId} and owner {userId}. Error: {e.Message}",
+                spaceId, userId, e.Message);
 
             return Result.Fail<string>(
-                $"Error generating QR code for device {deviceId} and booking {userId}. Error: {e.Message}");
+                $"Error generating QR code for space {spaceId} and user {userId}. Error: {e.Message}");
         }
     }
 
-    public async Task<Result<bool>> ValidateQrCode(string qrCode, int deviceId, int bookingId)
+    public async Task<Result<bool>> ValidateQrCode(string qrCode, int bookingId, int? spaceId = null)
     {
         try
         {
@@ -116,29 +109,35 @@ public class QrScannerService : BaseService<QrScannerService>, IQrScannerService
                 return Result.Fail<bool>("Invalid QR payload");
             }
 
-            if (payload.DeviceId != deviceId || payload.BookingId != bookingId)
+            if (spaceId == null)
             {
-                return Result.Fail<bool>("QR data does not match expected device or booking");
-            }
+                var bookingExists = await Context.Bookings.AnyAsync(b => b.Id == bookingId);
+                if (!bookingExists)
+                {
+                    return Result.Fail<bool>($"Booking with id {bookingId} does not exist");
+                }
 
-            if (DateTime.UtcNow > payload.ExpirationUtc)
+                if (payload.BookingId == bookingId && DateTime.UtcNow > payload.ExpirationUtc)
+                {
+                    return Result.Success(true);
+                }
+
+                return Result.Fail<bool>("QR code validation failed");
+            }
+            else
             {
-                return Result.Fail<bool>("QR code is expired");
-            }
+                if (payload.SpaceId != null && payload.SpaceId == spaceId && DateTime.UtcNow > payload.ExpirationUtc)
+                {
+                    return Result.Success(true);
+                }
 
-            var deviceExists = await Context.Devices.AnyAsync(d => d.Id == deviceId);
-            if (!deviceExists)
-            {
-                return Result.Fail<bool>($"Device with id {deviceId} does not exist");
-            }
+                if (payload.SpaceId != spaceId || payload.BookingId != bookingId)
+                {
+                    return Result.Fail<bool>("QR data does not match expected space or booking");
+                }
 
-            var bookingExists = await Context.Bookings.AnyAsync(b => b.Id == bookingId);
-            if (!bookingExists)
-            {
-                return Result.Fail<bool>($"Booking with id {bookingId} does not exist");
+                return Result.Success(true);
             }
-
-            return Result.Success(true);
         }
         catch (CryptographicException e)
         {
@@ -150,8 +149,7 @@ public class QrScannerService : BaseService<QrScannerService>, IQrScannerService
         catch (Exception e)
         {
             Log(LogLevel.Error, QrScannerServiceEventIds.ErrorValidatingQrCode,
-                "Error validating QR code for device {deviceId} and booking {bookingId}. Error: {e.Message}",
-                deviceId, bookingId, e.Message);
+                "Error validating QR code for booking {bookingId}. Error: {e.Message}", bookingId, e.Message);
 
             return Result.Fail<bool>(
                 $"Error validating QR code. Error: {e.Message}");
@@ -193,7 +191,7 @@ public class QrScannerService : BaseService<QrScannerService>, IQrScannerService
 
     private class QrPayload
     {
-        public int DeviceId { get; set; }
+        public int? SpaceId { get; set; }
 
         public int BookingId { get; set; }
 

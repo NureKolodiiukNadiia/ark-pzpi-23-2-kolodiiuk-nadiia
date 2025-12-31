@@ -174,10 +174,9 @@ public class IoTController : BaseController<IoTController>
     public async Task<IActionResult> GenerateQrCode([FromBody] GenerateQrCodeRequest request)
     {
         Log(LogLevel.Information, IotControllerEventIds.GenerateQrAttempt,
-            "Generate QR attempt device {DeviceId} booking {BookingId}",
-            request?.DeviceId, request?.BookingId);
+            "Generate QR attempt device {DeviceId} booking {BookingId}", request?.BookingId);
 
-        if (request is null || request.DeviceId < 1 || request.BookingId < 1)
+        if (request is null || request.BookingId < 1)
         {
             Log(LogLevel.Warning, IotControllerEventIds.GenerateQrInvalid,
                 "Generate QR payload invalid");
@@ -185,15 +184,14 @@ public class IoTController : BaseController<IoTController>
             return StatusCode(StatusCodes.Status400BadRequest, "Device and booking must be provided");
         }
 
-        var result = await _qrScannerService.GenerateQrCode(request.DeviceId, request.BookingId);
+        var result = await _qrScannerService.GenerateQrCode(request.BookingId);
         result.OnSuccess(() =>
                 Log(LogLevel.Information, IotControllerEventIds.GenerateQrSuccess,
-                    "Generated QR for device {DeviceId} booking {BookingId}",
-                    request.DeviceId, request.BookingId))
+                    "Generated QR for device {DeviceId} booking {BookingId}", request.BookingId))
             .OnFailure(() =>
                 Log(LogLevel.Error, IotControllerEventIds.GenerateQrFailure,
                     "Failed to generate QR for device {DeviceId} booking {BookingId}. Error: {Error}",
-                    request.DeviceId, request.BookingId, result.Error));
+                   request.BookingId, result.Error));
 
         return result.Failure
             ? StatusCode(StatusCodes.Status400BadRequest, result.Error)
