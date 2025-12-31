@@ -1,0 +1,9 @@
+{
+  "ApiHost": "https://irrigative-bessie-evidentially.ngrok-free.dev/api",
+  "DeviceId": 1,
+  "SpaceId": 1,
+  "DefaultUserId": 101,
+  "DefaultBookingId": 2001,
+  "InitialLockState": "locked",
+  "RegisterOnStart": true
+}
