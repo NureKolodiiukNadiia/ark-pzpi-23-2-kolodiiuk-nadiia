@@ -9,7 +9,7 @@ namespace SpotRent.Services.Spaces;
 
 public static class AttributeHelper
 {
-    public static Func<IQueryable<Space>, IOrderedQueryable<Space>> BuildOrderByDelegate(string? sort)
+    public static Func<IQueryable<Space>, IOrderedQueryable<Space>> BuildOrderByDelegate(string sort)
     {
         if (string.IsNullOrWhiteSpace(sort))
         {

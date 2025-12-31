@@ -1,51 +1,88 @@
 #include "smart_lock.h"
 
 #include <iostream>
-#include <nlohmann/json.hpp>
+#include <cstdio>
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 
-SmartLock::SmartLock(std::string initial_state)
+namespace {
+std::string escapeJson(const std::string& value) {
+    std::string escaped;
+    escaped.reserve(value.size());
+    for (char ch : value) {
+        switch (ch) {
+        case '\"':
+            escaped += "\\\"";
+            break;
+        case '\\':
+            escaped += "\\\\";
+            break;
+        case '\n':
+            escaped += "\\n";
+            break;
+        case '\r':
+            escaped += "\\r";
+            break;
+        case '\t':
+            escaped += "\\t";
+            break;
+        default:
+            escaped += ch;
+            break;
+        }
+    }
+    return escaped;
+}
+} // namespace
+
+SmartLock::SmartLock(const std::string& initial_state)
     : locked(true),
-      relock_delay_ms(2000u) {
-    auto initialState = initial_state;
-    if (initialState == "unlocked") {
+      relock_delay_ms(2000u),
+      api_host("")
+{
+    if (initial_state == "unlocked") {
         locked = false;
     }
-
     std::cout << "[INFO] Smart lock initialized in state: " << status() << "\n";
 }
 
-bool SmartLock::lock() {
+bool SmartLock::lock(int device_id, int user_id, const std::string& qrCode, bool isOwnerOverride) {
     if (locked) {
         std::cout << "[WARN] Lock command ignored. Already locked.\n";
         return false;
     }
 
-    std::string payload = fmt::format(
-        R"({{"deviceId": {}, "userId": {}, "qrCode": "{}", "isOwnerOverride": {}}})",
+    char buffer[512];
+    std::snprintf(buffer, sizeof(buffer),
+        R"({"deviceId": %d, "userId": %d, "qrCode": "%s", "isOwnerOverride": %s})",
         device_id,
-        userId,
-        escapeJson(qrCode),
+        user_id,
+        escapeJson(qrCode).c_str(),
         isOwnerOverride ? "true" : "false");
+    std::string payload(buffer);
 
     locked = true;
     std::cout << "[INFO] Lock engaged.\n";
     return true;
 }
 
-bool SmartLock::unlock() {
+bool SmartLock::unlock(int device_id, int user_id, const std::string& qrCode, bool isOwnerOverride) {
     if (!locked) {
         std::cout << "[WARN] Unlock command ignored. Already unlocked.\n";
         return false;
     }
 
-    std::string payload = fmt::format(
-        R"({{"deviceId": {}, "userId": {}, "qrCode": "{}", "isOwnerOverride": {}}})",
+    char buffer[512];
+    std::snprintf(buffer, sizeof(buffer),
+        R"({"deviceId": %d, "userId": %d, "qrCode": "%s", "isOwnerOverride": %s})",
         device_id,
-        userId,
-        escapeJson(qrCode),
+        user_id,
+        escapeJson(qrCode).c_str(),
         isOwnerOverride ? "true" : "false");
+    std::string payload(buffer);
 
-    std::string response = postJson("IoT/unlock", payload);
+    postJson("IoT/unlock", payload);
 
     locked = false;
     std::cout << "[INFO] Lock opened.\n";
@@ -73,36 +110,40 @@ bool SmartLock::postJsonWithPayload(const std::string& path, const std::string& 
 
     url += path;
 
-    cpr::Response response = cpr::Post(
-        cpr::Url{url},
-        cpr::Body{jsonBody},
-        cpr::Header{{"Content-Type", "application/json"}},
-        cpr::Timeout{5000}
-    );
-
-    if (response.error.code != cpr::ErrorCode::OK) {
-        std::cerr << "[ERROR] POST " << url << " failed: " << response.error.message << "\n";
-        if (outPayload) {
-            *outPayload = response.error.message;
-        }
-        return false;
-    }
-
+    // Dummy implementation for compatibility
     if (outPayload) {
-        *outPayload = response.text;
+        *outPayload = "";
+    }
+    return true;
+}
+
+bool SmartLock::postJson(const std::string& path, const std::string& jsonBody) const {
+
+    std::string url = api_host;
+    if (!url.empty() && url.back() == '/' && !path.empty() && path.front() == '/') {
+        url.pop_back();
     }
 
-    if (response.status_code >= 200 && response.status_code < 300) {
-        try {
-            nlohmann::json jsonResponse = nlohmann::json::parse(response.text);
-            bool success = jsonResponse["success"];
-        } catch (const std::exception& e) {
-            std::cerr << "JSON parsing error: " << e.what() << "\n";
+    url += path;
+
+    if (WiFi.status() == WL_CONNECTED) {
+        HTTPClient http;
+        http.begin((url).c_str());
+        http.addHeader("Content-Type", "application/json");
+        int httpResponseCode = http.POST(jsonBody.c_str());
+
+        if (httpResponseCode < 0) {
+            std::cerr << "[ERROR] POST " << url << " failed: " << http.errorToString(httpResponseCode).c_str() << "\n";
+            http.end();
             return false;
         }
+
+        std::cout << "[HTTP] POST " << url << " status " << httpResponseCode << " body: " << http.getString().c_str() << "\n";
+        bool ok = httpResponseCode >= 200 && httpResponseCode < 300;
+        http.end();
+        return ok;
+    } else {
+        std::cerr << "[ERROR] WiFi not connected, cannot POST " << url << "\n";
+        return false;
     }
-
-    std::cout << "[HTTP] POST " << url << " status " << response.status_code << " body: " << response.text << "\n";
-
-    return response.status_code >= 200 && response.status_code < 300;
 }

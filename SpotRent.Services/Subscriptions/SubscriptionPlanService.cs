@@ -183,7 +183,6 @@ public class SubscriptionPlanService : BaseService<SubscriptionPlanService>, ISu
                 return Result.Success();
             }
 
-            // when deactivated plan can be got by id, but not with GetPlans
             plan.IsActive = false;
             Context.Update(plan);
             await Context.SaveChangesAsync();

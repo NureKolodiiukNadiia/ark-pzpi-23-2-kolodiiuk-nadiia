@@ -3,7 +3,11 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
-#include <cpr/cpr.h>
+#include <cstdio>
+
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 
 #include "../lock/smart_lock.h"
 
@@ -37,31 +41,26 @@ std::string escapeJson(const std::string& value) {
 }
 } // namespace
 
-Device::Device(int id, std::string host, bool register_on_start, int default_user_id, int default_booking_id)
-    : device_id(id),
-      api_host(host),
-      auto_register(register_on_start),
-      default_user_id(default_user_id),
-      default_booking_id(default_booking_id) {
-
-    if (api_host.empty()) {
-
-        throw std::runtime_error("server.host must be configured");
-    }
+Device::Device()
+    : device_id(1),
+      api_host("https://irrigative-bessie-evidentially.ngrok-free.dev/api"),
+      auto_register(true),
+      default_user_id(101),
+      default_booking_id(2001) {
 }
 
 Device::~Device() = default;
 
 void Device::addSmartLock() {
-    smart_lock = std::make_unique<SmartLock>(config_table);
+    smart_lock.reset(new SmartLock("locked"));
 }
 
-bool Device::lock() {
+bool Device::lock(int user_id, const std::string& qrCode, bool isOwnerOverride) {
     if (!smart_lock) {
         return false;
     }
 
-    bool result = smart_lock->lock();
+    bool result = smart_lock->lock(device_id, user_id, qrCode, isOwnerOverride);
     if (result) {
         updateDeviceStatus(smart_lock->status(), true);
     }
@@ -69,12 +68,12 @@ bool Device::lock() {
     return result;
 }
 
-bool Device::unlock() {
+bool Device::unlock(int user_id, const std::string& qrCode, bool isOwnerOverride) {
     if (!smart_lock) {
         return false;
     }
 
-    bool result = smart_lock->unlock();
+    bool result = smart_lock->unlock(device_id, user_id, qrCode, isOwnerOverride);
     if (result) {
         updateDeviceStatus(smart_lock->status(), true);
     }
@@ -83,7 +82,9 @@ bool Device::unlock() {
 }
 
 bool Device::registerDevice() const {
-    std::string payload = fmt::format(R"({{"deviceId": {}}})", device_id);
+    char buffer[128];
+    std::snprintf(buffer, sizeof(buffer), "{\"deviceId\": %d}", device_id);
+    std::string payload(buffer);
 
     return postJson("/IoT/register", payload);
 }
@@ -97,37 +98,49 @@ void Device::logEvent(int userId, int bookingId, int accessType,
         return;
     }
 
-    std::string payload = fmt::format(
-        R"({{"userId": {}, "deviceId": {}, "accessType": {}, "bookingId": {}, "isSuccessful": {}, "errorMessage": "{}"}})",
+    std::string escapedError = escapeJson(errorMessage);
+    char buffer[512];
+    std::snprintf(buffer, sizeof(buffer),
+        "{\"userId\": %d, \"deviceId\": %d, \"accessType\": %d, \"bookingId\": %d, \"isSuccessful\": %s, \"errorMessage\": \"%s\"}",
         userId,
         device_id,
         accessType,
         bookingId,
         isSuccessful ? "true" : "false",
-        escapeJson(errorMessage));
+        escapedError.c_str());
+
+    std::string payload(buffer);
 
     postJson("/AccessLog", payload);
 }
 
 void Device::logEventOwner(int userId, int accessType, bool isSuccessful, const std::string& errorMessage) const {
-    std::string payload = fmt::format(
-        R"({{"userId": {}, "deviceId": {}, "accessType": {}, "isSuccessful": {}, "errorMessage": "{}"}})",
+    std::string escapedError = escapeJson(errorMessage);
+    char buffer[512];
+    std::snprintf(buffer, sizeof(buffer),
+        "{\"userId\": %d, \"deviceId\": %d, \"accessType\": %d, \"isSuccessful\": %s, \"errorMessage\": \"%s\"}",
         userId,
         device_id,
         accessType,
         isSuccessful ? "true" : "false",
-        escapeJson(errorMessage));
+        escapedError.c_str());
+
+    std::string payload(buffer);
 
     postJson("/AccessLog/owner", payload);
 }
 
 void Device::updateDeviceStatus(const std::string& statusMessage, bool isOnline) const {
 
-    std::string payload = fmt::format(
-        R"({{"deviceId": {}, "isOnline": {}, "statusMessage": "{}"}})",
+    std::string escapedStatus = escapeJson(statusMessage);
+    char buffer[512];
+    std::snprintf(buffer, sizeof(buffer),
+        "{\"deviceId\": %d, \"isOnline\": %s, \"statusMessage\": \"%s\"}",
         device_id,
         isOnline ? "true" : "false",
-        escapeJson(statusMessage));
+        escapedStatus.c_str());
+
+    std::string payload(buffer);
 
     postJson("/IoT/device-status", payload);
 }
@@ -140,20 +153,26 @@ bool Device::postJson(const std::string& path, const std::string& jsonBody) cons
     }
 
     url += path;
+    url = "https://irrigative-bessie-evidentially.ngrok-free.dev/api/iot/register";
 
-    cpr::Response response = cpr::Post(
-        cpr::Url{url},
-        cpr::Body{jsonBody},
-        cpr::Header{{"Content-Type", "application/json"}},
-        cpr::Timeout{5000}
-    );
+    if (WiFi.status() == WL_CONNECTED) {
+        HTTPClient http;
+        http.begin((url).c_str());
+        http.addHeader("Content-Type", "application/json");
+        int httpResponseCode = http.POST(jsonBody.c_str());
 
-    if (response.error.code != cpr::ErrorCode::OK) {
-        std::cerr << "[ERROR] POST " << url << " failed: " << response.error.message << "\n";
+        if (httpResponseCode < 0) {
+            std::cerr << "[ERROR] POST " << url << " failed: " << http.errorToString(httpResponseCode).c_str() << "\n";
+            http.end();
+            return false;
+        }
+
+        std::cout << "[HTTP] POST " << url << " status " << httpResponseCode << " body: " << http.getString().c_str() << "\n";
+        bool ok = httpResponseCode >= 200 && httpResponseCode < 300;
+        http.end();
+        return ok;
+    } else {
+        std::cerr << "[ERROR] WiFi not connected, cannot POST " << url << "\n";
         return false;
     }
-
-    std::cout << "[HTTP] POST " << url << " status " << response.status_code << " body: " << response.text << "\n";
-
-    return response.status_code >= 200 && response.status_code < 300;
 }

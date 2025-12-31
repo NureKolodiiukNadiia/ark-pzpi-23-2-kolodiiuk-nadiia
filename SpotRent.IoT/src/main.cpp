@@ -4,17 +4,16 @@
 #include <LiquidCrystal_I2C.h>
 #include <ESP32Servo.h>
 #include <device.h>
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 
-// [server]
-const std::string host = "http://localhost:5041/api";
+const std::string host = "https://irrigative-bessie-evidentially.ngrok-free.dev/api";
 
-// [device]
 const int id = 1;
 const int default_user_id = 101;
 const int default_booking_id = 2001;
 const int register_on_start = true;
 
-// [lock]
 const std::string initial_state = "locked";
 const int relock_delay_ms = 2000;
 
@@ -34,8 +33,8 @@ void updateLockStatus() {
   lcd.print(locked ? "Door Locked" : "Door Unlocked");
 }
 
-void unlockDoor() {
-  bool res = device.unlock();
+void unlockDoor(const std::string& qrData, int user_id = default_user_id, bool isOwnerOverride = false) {
+  bool res = device->unlock(user_id, qrData, isOwnerOverride);
   if (res) {
     locked = false;
     lockServo.write(unlockPosition);
@@ -46,8 +45,8 @@ void unlockDoor() {
   }
 }
 
-void lockDoor() {
-  bool res = device.lock();
+void lockDoor(const std::string& qrData, int user_id = default_user_id, bool isOwnerOverride = false) {
+  bool res = device->lock(user_id, qrData, isOwnerOverride);
   if (res) {
     locked = true;
     lockServo.write(lockPosition);
@@ -60,11 +59,12 @@ void lockDoor() {
 
 void handleQRCode(String qrData) {
   qrData.trim();
+  std::string qrStd = qrData.c_str();
 
-  if (qrData == "1234") {
-    unlockDoor();
-  } else if (qrData == "LOCK") {
-    lockDoor();
+  if (qrData == "LOCK") {
+    lockDoor(qrStd);
+  } else if (qrData == "UNLOCK") {
+    unlockDoor(qrStd);
   } else {
     lcd.clear();
     lcd.print("Invalid QR");
@@ -82,19 +82,28 @@ void setup() {
   lcd.init();
   lcd.backlight();
 
-
   device = new Device();
   if (device == nullptr) {
-    return -1;
+    return;
   }
-  device.addSmartLock();
 
-  bool res = device.registerDevice();
+  const char* ssid = "Wokwi-GUEST";
+  const char* password = "";
+  
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.println("Connecting to WiFi...");
+  }
+
+  device->addSmartLock();
+
+  bool res = device->registerDevice();
   if (res == false) {
-    return -2;
+    return;
   }
 
-  lockDoor();
+  lockDoor("LOCK");
 
   Serial.println("READY");
 }
