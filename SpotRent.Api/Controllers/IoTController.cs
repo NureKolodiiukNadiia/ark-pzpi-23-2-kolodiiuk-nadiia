@@ -174,7 +174,7 @@ public class IoTController : BaseController<IoTController>
     public async Task<IActionResult> GenerateQrCode([FromBody] GenerateQrCodeRequest request)
     {
         Log(LogLevel.Information, IotControllerEventIds.GenerateQrAttempt,
-            "Generate QR attempt device {DeviceId} booking {BookingId}", request?.BookingId);
+            "Generate QR attempt  booking {BookingId}", request?.BookingId);
 
         if (request is null || request.BookingId < 1)
         {
@@ -187,10 +187,10 @@ public class IoTController : BaseController<IoTController>
         var result = await _qrScannerService.GenerateQrCode(request.BookingId);
         result.OnSuccess(() =>
                 Log(LogLevel.Information, IotControllerEventIds.GenerateQrSuccess,
-                    "Generated QR for device {DeviceId} booking {BookingId}", request.BookingId))
+                    "Generated QR for booking {BookingId}", request.BookingId))
             .OnFailure(() =>
                 Log(LogLevel.Error, IotControllerEventIds.GenerateQrFailure,
-                    "Failed to generate QR for device {DeviceId} booking {BookingId}. Error: {Error}",
+                    "Failed to generate QR for booking {BookingId}. Error: {Error}",
                    request.BookingId, result.Error));
 
         return result.Failure

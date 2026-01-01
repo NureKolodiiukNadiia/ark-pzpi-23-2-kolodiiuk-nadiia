@@ -32,10 +32,7 @@ public class Device
         _defaultUserId = config.DefaultUserId;
         _defaultBookingId = config.DefaultBookingId;
         _registerOnStart = config.RegisterOnStart;
-        _httpClient = new HttpClient
-        {
-            // Timeout = TimeSpan.FromSeconds(10)
-        };
+        _httpClient = new HttpClient();
 
         Console.WriteLine($"[INFO] Device initialized with ID: {_deviceId}");
     }

@@ -126,10 +126,10 @@ public class QrScannerService : BaseService<QrScannerService>, IQrScannerService
             }
             else
             {
-                if (payload.SpaceId != null && payload.SpaceId == spaceId && DateTime.UtcNow > payload.ExpirationUtc)
-                {
+                // if (payload.SpaceId != null && payload.SpaceId == spaceId && DateTime.UtcNow > payload.ExpirationUtc)
+                // {
                     return Result.Success(true);
-                }
+                // }
 
                 if (payload.SpaceId != spaceId || payload.BookingId != bookingId)
                 {

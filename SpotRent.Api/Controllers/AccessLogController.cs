@@ -27,14 +27,14 @@ public class AccessLogController : BaseController<AccessLogController>
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [EndpointSummary("Create access log entry")]
-    [EndpointDescription("Creates an access log entry for a user device access attempt. Returns created id on success.")]
+    [EndpointDescription(
+        "Creates an access log entry for a user device access attempt. Returns created id on success.")]
     public async Task<IActionResult> CreateLogEntry(LogAccessRequest request)
     {
         Log(LogLevel.Information, AccessLogControllerEventIds.CreateAccessLogAttempt,
             "Access log creation attempt");
 
-        if (request is null || request.UserId < 1 || request.DeviceId < 1 ||
-            request.BookingId.HasValue && request.BookingId.Value > 0)
+        if (request is null || request.UserId < 1 || request.DeviceId < 1 || !request.BookingId.HasValue)
         {
             Log(LogLevel.Warning, AccessLogControllerEventIds.CreateAccessLogInvalid,
                 "Access log payload contains invalid identifiers");
@@ -42,30 +42,25 @@ public class AccessLogController : BaseController<AccessLogController>
             return StatusCode(StatusCodes.Status400BadRequest, "Request payload is not valid");
         }
 
-        if (request.BookingId != null)
-        {
-            var result = await _accessLogService.LogAccessAsync(
-                request.UserId,
-                request.DeviceId,
-                request.AccessType,
-                request.BookingId.Value,
-                request.IsSuccessful,
-                request.ErrorMessage);
+        var result = await _accessLogService.LogAccessAsync(
+            request.UserId,
+            request.DeviceId,
+            request.AccessType,
+            request.BookingId.Value,
+            request.IsSuccessful,
+            request.ErrorMessage);
 
-            result.OnSuccess(() =>
-                    Log(LogLevel.Information, AccessLogControllerEventIds.CreateAccessLogSuccess,
-                        "Access log entry created with id {AccessLogId}", result.Value))
-                .OnFailure(() =>
-                    Log(LogLevel.Error, AccessLogControllerEventIds.CreateAccessLogFailure,
-                        "Failed to create access log entry for user {UserId}, device {DeviceId}. Error: {Error}",
-                        request.UserId, request.DeviceId, result.Error));
+        result.OnSuccess(() =>
+                Log(LogLevel.Information, AccessLogControllerEventIds.CreateAccessLogSuccess,
+                    "Access log entry created with id {AccessLogId}", result.Value))
+            .OnFailure(() =>
+                Log(LogLevel.Error, AccessLogControllerEventIds.CreateAccessLogFailure,
+                    "Failed to create access log entry for user {UserId}, device {DeviceId}. Error: {Error}",
+                    request.UserId, request.DeviceId, result.Error));
 
-            return result.Failure
-                ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
-                : StatusCode(StatusCodes.Status201Created, new { Id = result.Value });
-        }
-
-        return StatusCode(StatusCodes.Status400BadRequest, "Booking id is required");
+        return result.Failure
+            ? StatusCode(StatusCodes.Status500InternalServerError, result.Error)
+            : StatusCode(StatusCodes.Status201Created, new { Id = result.Value });
     }
 
     // [Authorize("Owner")]

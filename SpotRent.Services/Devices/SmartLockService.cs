@@ -117,8 +117,8 @@ public class SmartLockService : BaseService<SmartLockService>, ISmartLockService
             var booking = await Context.Bookings.FirstOrDefaultAsync(b =>
                 b.UserId == userId &&
                 b.SpaceId == device.SpaceId &&
-                b.StartTime <= now &&
-                b.EndTime >= now &&
+                // b.StartTime <= now &&
+                // b.EndTime >= now &&
                 b.CancelledAt == null);
 
             if (booking is null)
